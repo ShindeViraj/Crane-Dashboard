@@ -30,11 +30,20 @@ require_once __DIR__ . '/../db/config.php';
 
 // Read JSON input
 $rawInput = file_get_contents('php://input');
-$data = json_decode($rawInput, true);
+
+// Aggressive sanitization: Remove any raw ASCII control characters (0x00-0x1F) from the raw string
+// VFD/Modbus drivers often append trailing null bytes or raw hex dumps that crash JSON parsers.
+$cleanInput = preg_replace('/[\x00-\x1F\x7F]/', '', $rawInput);
+
+$data = json_decode($cleanInput, true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid JSON: ' . json_last_error_msg()]);
+    echo json_encode([
+        'error' => 'Invalid JSON: ' . json_last_error_msg(),
+        'debug_escaped_input' => substr($cleanInput, 0, 200),
+        'debug_hex_input' => bin2hex(substr($rawInput, 0, 50))
+    ]);
     exit;
 }
 
