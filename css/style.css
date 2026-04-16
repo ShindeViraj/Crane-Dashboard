@@ -1345,6 +1345,7 @@ a {
     border-bottom: 2px solid var(--primary-container);
     padding: 14px 16px;
     vertical-align: middle;
+    white-space: nowrap;
 }
 
 .table-custom td {
@@ -1357,6 +1358,7 @@ a {
     vertical-align: middle;
     border-bottom: 1px solid var(--outline-variant);
     transition: background-color 0.2s;
+    white-space: nowrap;
 }
 
 .table-custom tbody tr:hover td {

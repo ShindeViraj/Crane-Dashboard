@@ -15,7 +15,7 @@ $cranes = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY crane_id")->fe
 $craneId = $_GET['crane_id'] ?? ($_POST['crane_id'] ?? '');
 $fromDate = $_GET['from'] ?? ($_POST['from'] ?? date('Y-m-d', strtotime('-7 days')));
 $toDate = $_GET['to'] ?? ($_POST['to'] ?? date('Y-m-d'));
-$driveFilter = $_GET['drive'] ?? ($_POST['drive'] ?? 'all'); // all, MH, CT, LT, AH
+$driveFilter = $_GET['drive'] ?? ($_POST['drive'] ?? 'MH'); // Default to MH, avoids 40-col break
 $exportCsv = isset($_GET['export']) && $_GET['export'] === 'csv';
 
 // Build query based on filters
