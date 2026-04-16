@@ -61,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch all cranes
-$cranes = $pdo->query("SELECT * FROM cranes ORDER BY crane_id ASC")->fetchAll();
+// Fetch all cranes with dynamic online status timestamp
+$cranes = $pdo->query("SELECT c.*, (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at FROM cranes c ORDER BY c.crane_id ASC")->fetchAll();
 
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
@@ -145,14 +145,17 @@ require_once 'includes/sidebar.php';
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($cranes as $crane): ?>
+                        <?php foreach ($cranes as $crane): 
+                            $lastData = $crane['last_data_at'] ? strtotime($crane['last_data_at']) : 0;
+                            $isOnline = (time() - $lastData) < 50;
+                        ?>
                         <tr>
                             <td><strong><?php echo htmlspecialchars($crane['crane_id']); ?></strong></td>
                             <td><?php echo htmlspecialchars($crane['name']); ?></td>
                             <td><?php echo htmlspecialchars($crane['location'] ?: '—'); ?></td>
                             <td>
-                                <span class="status-chip <?php echo $crane['status'] === 'online' ? 'status-online' : 'status-idle-chip'; ?>">
-                                    <span class="status-dot"></span> <?php echo ucfirst($crane['status']); ?>
+                                <span class="status-chip <?php echo $isOnline ? 'status-online' : 'status-idle-chip'; ?>">
+                                    <span class="status-dot"></span> <?php echo $isOnline ? 'Online' : 'Offline'; ?>
                                 </span>
                             </td>
                             <td>

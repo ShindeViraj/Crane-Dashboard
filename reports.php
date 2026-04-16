@@ -33,10 +33,10 @@ if ($craneId) {
     } else {
         $d = $driveFilter;
         $selectCols = "Timestamp, crane_id,
-            {$d}_Drive_status, {$d}_Output_frequency, {$d}_Motor_current, {$d}_Motor_torque,
-            {$d}_Mains_voltage, {$d}_Motor_voltage, {$d}_Motor_power, {$d}_Drive_temp,
-            {$d}_Motion_run_time, {$d}_Logic_input, {$d}_Logic_output, {$d}_Altivar_fault_code,
-            {$d}_Encoder, {$d}_Load_data, {$d}_di";
+            {$d}_Drive_status as Drive_status, {$d}_Output_frequency as Output_frequency, {$d}_Motor_current as Motor_current, {$d}_Motor_torque as Motor_torque,
+            {$d}_Mains_voltage as Mains_voltage, {$d}_Motor_voltage as Motor_voltage, {$d}_Motor_power as Motor_power, {$d}_Drive_temp as Drive_temp,
+            {$d}_Motion_run_time as Motion_run_time, {$d}_Logic_input as Logic_input, {$d}_Logic_output as Logic_output, {$d}_Altivar_fault_code as Fault_code,
+            {$d}_Encoder as Encoder, {$d}_Load_data as Load_data, {$d}_di as Digital_inputs";
     }
     
     // Count total records for this query
