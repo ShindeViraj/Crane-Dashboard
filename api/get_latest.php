@@ -15,6 +15,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
+    echo json_encode(['success' => true]);
     exit;
 }
 
@@ -30,11 +31,11 @@ $craneId = isset($_GET['crane_id']) ? htmlspecialchars(trim($_GET['crane_id'])) 
 
 try {
     $pdo = getDbConnection();
-    
+
     $stmt = $pdo->prepare("SELECT * FROM crane_data WHERE crane_id = :crane_id ORDER BY Timestamp DESC LIMIT 1");
     $stmt->execute([':crane_id' => $craneId]);
     $row = $stmt->fetch();
-    
+
     if ($row) {
         http_response_code(200);
         echo json_encode([
