@@ -40,7 +40,13 @@
             <li class="nav-item">
                 <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'reports.php' ? 'active' : ''; ?>" href="reports.php" id="nav-reports">
                     <i class="bi bi-file-earmark-bar-graph"></i>
-                    <span>Reports</span>
+                    <span>Telemetry Reports</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'fault_reports.php' ? 'active' : ''; ?>" href="fault_reports.php" id="nav-fault-reports">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Fault History</span>
                 </a>
             </li>
             <li class="nav-item">

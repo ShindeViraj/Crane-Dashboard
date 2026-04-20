@@ -128,6 +128,12 @@ const CRANE_ID = '<?php echo $craneId; ?>';
 const DRIVES = ['mh', 'ct', 'lt', 'ah'];
 const PREFIXES = ['MH', 'CT', 'LT', 'AH'];
 
+<?php 
+require_once 'includes/fault_codes.php';
+global $faultMap;
+?>
+const FAULT_MAP = <?php echo json_encode($faultMap); ?>;
+
 function updateDrivesLive(data) {
     if (!data) return;
     
@@ -181,12 +187,17 @@ function updateDrivesLive(data) {
         }
         
         // Fault code with red highlight
-        const faultCode = data[p + '_Altivar_fault_code'];
+        const faultCode = parseInt(data[p + '_Altivar_fault_code']) || 0;
         const faultEl = document.getElementById(d + '-fault-code');
         if (faultEl) {
-            faultEl.textContent = faultCode !== null && faultCode !== undefined ? faultCode : '—';
-            faultEl.classList.remove('fault-active');
-            if (parseInt(faultCode) > 0) faultEl.classList.add('fault-active');
+            if (faultCode > 0) {
+                const faultStr = FAULT_MAP[faultCode] ? FAULT_MAP[faultCode] : 'Unknown (' + faultCode + ')';
+                faultEl.innerHTML = '<span class="badge bg-danger text-wrap" style="font-size:11px;">' + faultStr + '</span>';
+                faultEl.classList.add('fault-active');
+            } else {
+                faultEl.innerHTML = '—';
+                faultEl.classList.remove('fault-active');
+            }
         }
     });
 }

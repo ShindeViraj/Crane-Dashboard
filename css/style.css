@@ -1505,3 +1505,23 @@ a {
     color: var(--on-surface);
 }
 
+/* ================================================
+   FULLSCREEN OVERLAY
+   ================================================ */
+.fullscreen-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    background: var(--surface-container-lowest) !important;
+    border-radius: 0 !important;
+    overflow-y: auto !important;
+    padding: 24px !important;
+    margin: 0 !important;
+}
+
+.fullscreen-overlay .table-responsive {
+    max-height: calc(100vh - 120px) !important;
+}

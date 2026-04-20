@@ -3,6 +3,7 @@
  * Reports — Historical data by date, all drives or individual drive
  */
 require_once 'includes/auth.php';
+require_once 'includes/fault_codes.php';
 requireLogin();
 
 $pageTitle = 'Reports';
@@ -56,8 +57,16 @@ if ($craneId) {
         $first = true;
         while ($row = $stmt->fetch()) {
             if ($first) {
-                fputcsv($output, array_keys($row));
+                // Strip prefixes again just in case, though they are already stripped for single drives
+                $headers = array_map(function($h) { return str_replace('_', ' ', $h); }, array_keys($row));
+                fputcsv($output, $headers);
                 $first = false;
+            }
+            // Parse fault codes before export
+            foreach ($row as $key => $val) {
+                if (stripos($key, 'fault_code') !== false) {
+                    $row[$key] = getFaultCodeDescription($val);
+                }
             }
             fputcsv($output, $row);
         }
@@ -104,9 +113,9 @@ require_once 'includes/sidebar.php';
             <h3 class="card-title text-uppercase"><i class="bi bi-funnel"></i> Report Filters</h3>
             <form method="GET" action="reports.php" id="report-form" class="report-filter-form">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-2">
+                    <div class="col-md-6 mb-2">
                         <label class="settings-label" for="filter-crane">Crane</label>
-                        <select class="form-select form-input-custom" id="filter-crane" name="crane_id" required>
+                        <select class="form-select form-input-custom py-2" id="filter-crane" name="crane_id" required>
                             <option value="">Select Crane</option>
                             <?php foreach ($cranes as $c): ?>
                             <option value="<?php echo htmlspecialchars($c['crane_id']); ?>" <?php echo $craneId === $c['crane_id'] ? 'selected' : ''; ?>>
@@ -115,9 +124,9 @@ require_once 'includes/sidebar.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-6 mb-2">
                         <label class="settings-label" for="filter-drive">Drive</label>
-                        <select class="form-select form-input-custom" id="filter-drive" name="drive">
+                        <select class="form-select form-input-custom py-2" id="filter-drive" name="drive">
                             <option value="all" <?php echo $driveFilter==='all'?'selected':''; ?>>All Drives</option>
                             <option value="MH" <?php echo $driveFilter==='MH'?'selected':''; ?>>Main Hoist (MH)</option>
                             <option value="CT" <?php echo $driveFilter==='CT'?'selected':''; ?>>Cross Travel (CT)</option>
@@ -125,28 +134,28 @@ require_once 'includes/sidebar.php';
                             <option value="AH" <?php echo $driveFilter==='AH'?'selected':''; ?>>Aux Hoist (AH)</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-6 mb-2">
                         <label class="settings-label" for="filter-from">From Date</label>
-                        <input type="date" class="form-control form-input-custom" id="filter-from" name="from" value="<?php echo $fromDate; ?>">
+                        <input type="date" class="form-control form-input-custom py-2" id="filter-from" name="from" value="<?php echo $fromDate; ?>">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-6 mb-2">
                         <label class="settings-label" for="filter-to">To Date</label>
-                        <input type="date" class="form-control form-input-custom" id="filter-to" name="to" value="<?php echo $toDate; ?>">
+                        <input type="date" class="form-control form-input-custom py-2" id="filter-to" name="to" value="<?php echo $toDate; ?>">
                     </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary-gradient w-100" id="btn-generate-report">
-                            <i class="bi bi-search"></i> Generate
+                    <div class="col-md-6 mb-2">
+                        <button type="submit" class="btn btn-primary-gradient w-100 py-3" id="btn-generate-report" style="font-weight: 700;">
+                            <i class="bi bi-search"></i> Generate Report
                         </button>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-6 mb-2">
                         <?php if ($craneId && $totalRecords > 0): ?>
                         <a href="reports.php?crane_id=<?php echo urlencode($craneId); ?>&drive=<?php echo $driveFilter; ?>&from=<?php echo $fromDate; ?>&to=<?php echo $toDate; ?>&export=csv" 
-                           class="btn btn-success-gradient w-100" id="btn-export-csv">
-                            <i class="bi bi-download"></i> Export CSV
+                           class="btn btn-success-gradient w-100 py-3" id="btn-export-csv" style="font-weight: 700;">
+                            <i class="bi bi-download"></i> Download CSV
                         </a>
                         <?php else: ?>
-                        <button class="btn btn-outline-action w-100" disabled>
-                            <i class="bi bi-download"></i> Export CSV
+                        <button class="btn btn-outline-action w-100 py-3" disabled style="font-weight: 700;">
+                            <i class="bi bi-download"></i> Download CSV
                         </button>
                         <?php endif; ?>
                     </div>
@@ -160,19 +169,25 @@ require_once 'includes/sidebar.php';
 <?php if ($craneId): ?>
 <div class="row g-4 mb-4">
     <div class="col-12">
-        <div class="data-card">
-            <div class="card-header-bar">
-                <div class="card-title-group">
-                    <h3 class="card-title text-uppercase mb-0">
-                        Report: <?php echo $driveFilter === 'all' ? 'All Drives' : $driveFilter . ' Drive'; ?>
-                    </h3>
-                    <span class="status-chip status-idle-chip">
-                        <?php echo number_format($totalRecords); ?> records
+        <div class="data-card" id="report-preview-card">
+            <div class="card-header-bar" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <div class="card-title-group">
+                        <h3 class="card-title text-uppercase mb-0">
+                            Report: <?php echo $driveFilter === 'all' ? 'All Drives' : $driveFilter . ' Drive'; ?>
+                        </h3>
+                        <span class="status-chip status-idle-chip">
+                            <?php echo number_format($totalRecords); ?> records
+                        </span>
+                    </div>
+                    <span class="text-muted" style="font-size:13px; display:inline-block; margin-top:4px;">
+                        <?php echo htmlspecialchars($fromDate); ?> to <?php echo htmlspecialchars($toDate); ?>
                     </span>
                 </div>
-                <span class="text-muted" style="font-size:13px;">
-                    <?php echo $fromDate; ?> to <?php echo $toDate; ?>
-                </span>
+                <!-- Fullscreen Toggle Button -->
+                <button type="button" class="btn btn-outline-action btn-sm" onclick="toggleFullscreen()" id="btn-fullscreen">
+                    <i class="bi bi-arrows-fullscreen"></i> Expand
+                </button>
             </div>
             
             <?php if (empty($reportData)): ?>
@@ -181,8 +196,8 @@ require_once 'includes/sidebar.php';
                 <p style="color:#74777f;margin-top:12px;">No data found for the selected filters.</p>
             </div>
             <?php else: ?>
-            <div class="table-responsive" style="max-height:600px;overflow-y:auto;">
-                <table class="table table-custom table-sm" id="report-table">
+            <div class="table-responsive" style="max-height:600px; max-width: 100%; overflow: auto;">
+                <table class="table table-custom table-sm mb-0" id="report-table">
                     <thead style="position:sticky;top:0;z-index:1;">
                         <tr>
                             <?php 
@@ -197,9 +212,17 @@ require_once 'includes/sidebar.php';
                         <tr>
                             <?php foreach ($row as $key => $val): ?>
                             <td <?php 
-                                if (strpos($key,'fault_code') !== false && intval($val) > 0) echo 'class="fault-active"';
-                                if (strpos($key,'Drive_temp') !== false && floatval($val) > 70) echo 'class="temp-danger"';
-                            ?>><?php echo htmlspecialchars($val ?? '—'); ?></td>
+                                if (stripos($key, 'fault_code') !== false && intval($val) > 0) echo 'class="fault-active"';
+                                if (stripos($key, 'Drive_temp') !== false && floatval($val) > 70) echo 'class="temp-danger"';
+                            ?>>
+                                <?php 
+                                    if (stripos($key, 'fault_code') !== false) {
+                                        echo htmlspecialchars(getFaultCodeDescription($val));
+                                    } else {
+                                        echo htmlspecialchars($val !== null ? $val : '—'); 
+                                    }
+                                ?>
+                            </td>
                             <?php endforeach; ?>
                         </tr>
                         <?php endforeach; ?>
@@ -238,5 +261,19 @@ require_once 'includes/sidebar.php';
     </div>
 </div>
 <?php endif; ?>
+<script>
+function toggleFullscreen() {
+    const card = document.getElementById('report-preview-card');
+    const btn = document.getElementById('btn-fullscreen');
+    
+    if (card.classList.contains('fullscreen-overlay')) {
+        card.classList.remove('fullscreen-overlay');
+        btn.innerHTML = '<i class="bi bi-arrows-fullscreen"></i> Expand';
+    } else {
+        card.classList.add('fullscreen-overlay');
+        btn.innerHTML = '<i class="bi bi-fullscreen-exit"></i> Collapse';
+    }
+}
+</script>
 
 <?php require_once 'includes/footer.php'; ?>
