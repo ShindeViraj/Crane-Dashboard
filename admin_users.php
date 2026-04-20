@@ -21,12 +21,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $targetId = intval($_POST['user_id'] ?? 0);
         $newRole = $_POST['new_role'] ?? '';
         
-        // Only developers can set developer role
-        if ($newRole === 'developer' && $currentUser['role'] !== 'developer') {
+        // Fetch target user's current role
+        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = :id");
+        $stmt->execute([':id' => $targetId]);
+        $target = $stmt->fetch();
+        
+        if ($targetId === $currentUser['id']) {
+            $message = 'You cannot change your own role.';
+            $msgType = 'error';
+        } elseif (!$target) {
+            $message = 'User not found.';
+            $msgType = 'error';
+        } elseif ($currentUser['role'] === 'admin' && $target['role'] === 'developer') {
+            // Admin cannot alter a developer
+            $message = 'Admins cannot modify developer accounts.';
+            $msgType = 'error';
+        } elseif ($currentUser['role'] === 'developer' && $target['role'] === 'admin') {
+            // Developer cannot alter an admin
+            $message = 'Developers cannot modify admin accounts.';
+            $msgType = 'error';
+        } elseif ($newRole === 'developer' && $currentUser['role'] !== 'developer') {
             $message = 'Only developers can promote users to developer role.';
             $msgType = 'error';
-        } elseif ($targetId === $currentUser['id']) {
-            $message = 'You cannot change your own role.';
+        } elseif ($newRole === 'admin' && $currentUser['role'] !== 'admin' && $currentUser['role'] !== 'developer') {
+            $message = 'You do not have permission to set this role.';
             $msgType = 'error';
         } elseif (in_array($newRole, ['developer', 'admin', 'user'])) {
             $stmt = $pdo->prepare("UPDATE users SET role = :role WHERE id = :id");
@@ -39,23 +57,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Delete user
     if ($action === 'delete_user') {
         $targetId = intval($_POST['user_id'] ?? 0);
+        
+        // Fetch target user's current role
+        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = :id");
+        $stmt->execute([':id' => $targetId]);
+        $target = $stmt->fetch();
+        
         if ($targetId === $currentUser['id']) {
             $message = 'You cannot delete your own account.';
             $msgType = 'error';
+        } elseif (!$target) {
+            $message = 'User not found.';
+            $msgType = 'error';
+        } elseif ($currentUser['role'] === 'admin' && $target['role'] === 'developer') {
+            $message = 'Admins cannot delete developer accounts.';
+            $msgType = 'error';
+        } elseif ($currentUser['role'] === 'developer' && $target['role'] === 'admin') {
+            $message = 'Developers cannot delete admin accounts.';
+            $msgType = 'error';
         } else {
-            // Check if target is developer (only devs can delete devs)
-            $stmt = $pdo->prepare("SELECT role FROM users WHERE id = :id");
+            $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
             $stmt->execute([':id' => $targetId]);
-            $target = $stmt->fetch();
-            if ($target && $target['role'] === 'developer' && $currentUser['role'] !== 'developer') {
-                $message = 'Only developers can delete developer accounts.';
-                $msgType = 'error';
-            } else {
-                $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
-                $stmt->execute([':id' => $targetId]);
-                $message = 'User deleted successfully.';
-                $msgType = 'success';
-            }
+            $message = 'User deleted successfully.';
+            $msgType = 'success';
         }
     }
     
@@ -159,6 +183,11 @@ require_once 'includes/sidebar.php';
                                 default     => 'bg-secondary',
                             };
                             $isSelf = ($u['id'] === $currentUser['id']);
+                            // Mutual protection: admin can't touch developer, developer can't touch admin
+                            $isProtected = (
+                                ($currentUser['role'] === 'admin' && $u['role'] === 'developer') ||
+                                ($currentUser['role'] === 'developer' && $u['role'] === 'admin')
+                            );
                         ?>
                         <tr <?php echo $selectedUserId === $u['id'] ? 'style="background:rgba(0,33,71,0.06);"' : ''; ?>>
                             <td>
@@ -188,7 +217,7 @@ require_once 'includes/sidebar.php';
                                     </a>
                                     <?php endif; ?>
                                     
-                                    <?php if (!$isSelf): ?>
+                                    <?php if (!$isSelf && !$isProtected): ?>
                                     <!-- Role change dropdown -->
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-action dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Change Role">

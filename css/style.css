@@ -1,5 +1,5 @@
-/* ================================================
-   BML IOT VFD Dashboard — Custom Styles
+﻿/* ================================================
+   BML IOT VFD Dashboard â€” Custom Styles
    Design System: Industrial Precision
    Colors: Navy (#002147), Green (#006e25), Orange (#E67E22)
    Fonts: Manrope (headings), Inter (body)
@@ -1547,4 +1547,97 @@ a {
 
 .fullscreen-overlay .table-responsive {
     max-height: calc(100vh - 120px) !important;
+}
+
+/* ================================================
+   REPORT & TABLE AUTO-FIT
+   ================================================ */
+/* Ensure filter buttons stay within viewport */
+.report-filter-form {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.report-filter-form .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Report table: fit to card width, scroll horizontally for extra columns */
+.data-card .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.data-card .table-responsive table {
+    min-width: 600px; /* ensures scroll kicks in for wide tables */
+    table-layout: auto;
+}
+
+.data-card .table-responsive table th,
+.data-card .table-responsive table td {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+/* Allow dropdown menus to overflow cards (user management, etc.) */
+.data-card {
+    overflow: visible;
+}
+
+/* Keep card shadow clip but not content overflow */
+.data-card .table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+/* Card header bar: wrap on small screens */
+.card-header-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Admin users table: compact actions column */
+#users-table td:last-child .d-flex {
+    flex-wrap: nowrap;
+}
+
+/* Alert styling for RBAC messages */
+.alert-custom {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.alert-success-custom {
+    background: rgba(0, 110, 37, 0.08);
+    color: #006e25;
+}
+
+.alert-error-custom {
+    background: rgba(186, 26, 26, 0.08);
+    color: #ba1a1a;
+}
+
+/* Delete button outline style */
+.btn-danger-outline {
+    color: #ba1a1a;
+    border: 1px solid #ba1a1a;
+    background: transparent;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.btn-danger-outline:hover {
+    background: #ba1a1a;
+    color: #fff;
 }
