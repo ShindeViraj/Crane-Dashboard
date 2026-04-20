@@ -2,12 +2,12 @@
 <aside class="sidebar" id="sidebar">
     <!-- Logo Area -->
     <div class="sidebar-logo">
-        <div class="logo-icon">
-            <i class="bi bi-building"></i>
+        <div class="logo-img-wrap">
+            <img src="assets/logo.png" alt="SquareWave Logo" class="sidebar-logo-img">
         </div>
         <div class="logo-text">
-            <span class="logo-brand">BAJAJ</span>
-            <span class="logo-sub">MUKAND</span>
+            <span class="logo-brand">SQUAREWAVE</span>
+            <span class="logo-sub">AUTOMATION TECHNOLOGIES PVT. LTD.</span>
         </div>
     </div>
     
