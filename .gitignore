@@ -36,3 +36,6 @@ uploads/
 *.sql.bak
 *.sql.gz
 backups/
+
+# Graphify
+graphify-out/
