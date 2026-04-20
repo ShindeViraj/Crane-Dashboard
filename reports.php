@@ -9,8 +9,21 @@ requireLogin();
 $pageTitle = 'Reports';
 $pdo = getDbConnection();
 
-// Get all cranes for dropdown
-$cranes = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY crane_id")->fetchAll();
+// Get cranes for dropdown (filtered by assignment for 'user' role)
+$currentUserData = getCurrentUser();
+if ($currentUserData && $currentUserData['role'] === 'user') {
+    $assignedCranes = getUserAssignedCranes($currentUserData['id']);
+    if (!empty($assignedCranes)) {
+        $placeholders = implode(',', array_fill(0, count($assignedCranes), '?'));
+        $stmt = $pdo->prepare("SELECT crane_id, name FROM cranes WHERE crane_id IN ($placeholders) ORDER BY crane_id");
+        $stmt->execute($assignedCranes);
+        $cranes = $stmt->fetchAll();
+    } else {
+        $cranes = [];
+    }
+} else {
+    $cranes = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY crane_id")->fetchAll();
+}
 
 // Report parameters
 $craneId = $_GET['crane_id'] ?? ($_POST['crane_id'] ?? '');

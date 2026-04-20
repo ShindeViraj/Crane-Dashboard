@@ -1,7 +1,8 @@
 <?php
 /**
- * Authentication Helper
- * Handles login, logout, session management, password changes
+ * Authentication & RBAC Helper
+ * Handles login, logout, registration, session management, 
+ * role-based access, and crane assignment
  */
 
 require_once __DIR__ . '/../db/config.php';
@@ -35,7 +36,33 @@ function requireLogin() {
 }
 
 /**
- * Get current user data
+ * Require specific role(s) — redirect with 403 if unauthorized
+ * @param string|array $roles Allowed role(s): 'developer', 'admin', 'user'
+ */
+function requireRole($roles) {
+    requireLogin();
+    if (is_string($roles)) $roles = [$roles];
+    
+    $user = getCurrentUser();
+    if (!$user || !in_array($user['role'], $roles)) {
+        // Redirect to dashboard with access denied
+        $_SESSION['flash_error'] = 'Access denied. You do not have permission to view that page.';
+        header('Location: dashboard.php');
+        exit;
+    }
+}
+
+/**
+ * Check if current user has one of the given roles (no redirect)
+ */
+function hasRole($roles) {
+    if (is_string($roles)) $roles = [$roles];
+    $user = getCurrentUser();
+    return $user && in_array($user['role'], $roles);
+}
+
+/**
+ * Get current user data (cached per request)
  */
 function getCurrentUser() {
     if (!isLoggedIn()) return null;
@@ -51,6 +78,145 @@ function getCurrentUser() {
         return $user;
     } catch (PDOException $e) {
         return null;
+    }
+}
+
+/**
+ * Get crane IDs assigned to a specific user
+ * Returns array of crane_id strings. Developers/admins get ALL cranes.
+ */
+function getUserAssignedCranes($userId = null) {
+    if ($userId === null && isLoggedIn()) {
+        $userId = $_SESSION['user_id'];
+    }
+    if (!$userId) return [];
+    
+    $user = getCurrentUser();
+    
+    // Developers and admins see all cranes
+    if ($user && in_array($user['role'], ['developer', 'admin'])) {
+        try {
+            $pdo = getDbConnection();
+            $stmt = $pdo->query("SELECT crane_id FROM cranes ORDER BY crane_id ASC");
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    // Regular users only see assigned cranes
+    try {
+        $pdo = getDbConnection();
+        $stmt = $pdo->prepare("SELECT crane_id FROM user_cranes WHERE user_id = :uid ORDER BY crane_id ASC");
+        $stmt->execute([':uid' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/**
+ * Check if a user has access to a specific crane
+ */
+function canAccessCrane($craneId, $userId = null) {
+    $user = getCurrentUser();
+    if ($user && in_array($user['role'], ['developer', 'admin'])) {
+        return true; // Full access
+    }
+    $assigned = getUserAssignedCranes($userId);
+    return in_array($craneId, $assigned);
+}
+
+/**
+ * Assign a crane to a user
+ */
+function assignCraneToUser($userId, $craneId) {
+    try {
+        $pdo = getDbConnection();
+        $stmt = $pdo->prepare("INSERT IGNORE INTO user_cranes (user_id, crane_id) VALUES (:uid, :cid)");
+        $stmt->execute([':uid' => $userId, ':cid' => $craneId]);
+        return ['success' => true, 'message' => 'Crane assigned successfully.'];
+    } catch (PDOException $e) {
+        return ['success' => false, 'error' => 'Failed to assign crane: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * Unassign a crane from a user
+ */
+function unassignCraneFromUser($userId, $craneId) {
+    try {
+        $pdo = getDbConnection();
+        $stmt = $pdo->prepare("DELETE FROM user_cranes WHERE user_id = :uid AND crane_id = :cid");
+        $stmt->execute([':uid' => $userId, ':cid' => $craneId]);
+        return ['success' => true, 'message' => 'Crane unassigned successfully.'];
+    } catch (PDOException $e) {
+        return ['success' => false, 'error' => 'Failed to unassign crane.'];
+    }
+}
+
+/**
+ * Register a new user (default role: 'user')
+ */
+function registerUser($username, $email, $password, $displayName) {
+    $username = trim($username);
+    $email = trim($email);
+    $displayName = trim($displayName);
+    
+    // Validation
+    if (empty($username) || empty($password)) {
+        return ['success' => false, 'error' => 'Username and password are required.'];
+    }
+    if (strlen($username) < 3 || strlen($username) > 50) {
+        return ['success' => false, 'error' => 'Username must be 3-50 characters.'];
+    }
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+        return ['success' => false, 'error' => 'Username can only contain letters, numbers, and underscores.'];
+    }
+    if (strlen($password) < 6) {
+        return ['success' => false, 'error' => 'Password must be at least 6 characters.'];
+    }
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['success' => false, 'error' => 'Please enter a valid email address.'];
+    }
+    if (empty($displayName)) {
+        $displayName = $username;
+    }
+    
+    try {
+        $pdo = getDbConnection();
+        
+        // Check duplicate username
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = :u");
+        $stmt->execute([':u' => $username]);
+        if ($stmt->fetch()) {
+            return ['success' => false, 'error' => 'Username is already taken.'];
+        }
+        
+        // Check duplicate email
+        if (!empty($email)) {
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :e");
+            $stmt->execute([':e' => $email]);
+            if ($stmt->fetch()) {
+                return ['success' => false, 'error' => 'Email is already registered.'];
+            }
+        }
+        
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, display_name, role) VALUES (:u, :e, :p, :d, 'user')");
+        $stmt->execute([
+            ':u' => $username,
+            ':e' => !empty($email) ? $email : null,
+            ':p' => $hash,
+            ':d' => $displayName
+        ]);
+        
+        return ['success' => true, 'message' => 'Account created successfully! You can now log in.', 'user_id' => $pdo->lastInsertId()];
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), 'Duplicate') !== false) {
+            return ['success' => false, 'error' => 'Username or email already exists.'];
+        }
+        return ['success' => false, 'error' => 'Registration failed. Please try again.'];
     }
 }
 
@@ -139,7 +305,7 @@ function updateProfile($userId, $displayName, $email, $username) {
     try {
         $pdo = getDbConnection();
         
-        // Check for duplicate username
+        // Check for duplicate username/email
         $stmt = $pdo->prepare("SELECT id FROM users WHERE (username = :username OR email = :email) AND id != :id");
         $stmt->execute([':username' => $username, ':email' => $email, ':id' => $userId]);
         if ($stmt->fetch()) {

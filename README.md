@@ -1,4 +1,4 @@
-# Crane Dashboard (BML IOT)
+# Crane Dashboard (SQUAREWAVE AUTOMATION IOT)
 
 A comprehensive, real-time industrial VFD (Variable Frequency Drive) monitoring dashboard tailored for Bajaj Mukand cranes. This system acts as the central interface for viewing live operational metrics, health statuses, and historical reports for hoist, trolley, and gantry mechanisms.
 

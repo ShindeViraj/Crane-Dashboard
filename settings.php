@@ -79,11 +79,13 @@ require_once 'includes/sidebar.php';
                     <i class="bi bi-lock"></i> Password
                 </button>
             </li>
+            <?php if ($user['role'] === 'developer'): ?>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api-pane" type="button" role="tab">
                     <i class="bi bi-plug"></i> API Info
                 </button>
             </li>
+            <?php endif; ?>
         </ul>
     </div>
 </div>
@@ -174,7 +176,8 @@ require_once 'includes/sidebar.php';
         </div>
     </div>
     
-    <!-- API Info Tab -->
+    <!-- API Info Tab (Developer Only) -->
+    <?php if ($user['role'] === 'developer'): ?>
     <div class="tab-pane fade" id="api-pane" role="tabpanel">
         <div class="row g-4 mb-4">
             <div class="col-lg-8">
@@ -215,6 +218,7 @@ require_once 'includes/sidebar.php';
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <script>

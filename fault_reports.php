@@ -8,6 +8,7 @@ require_once 'includes/fault_codes.php';
 requireLogin();
 
 $pageTitle = 'Fault History';
+$pdo = getDbConnection();
 
 $craneId = $_GET['crane_id'] ?? '';
 $driveFilter = $_GET['drive'] ?? 'all'; 
@@ -17,9 +18,26 @@ $fromDate = $_GET['from'] ?? date('Y-m-d', strtotime('-7 days'));
 $toDate = $_GET['to'] ?? date('Y-m-d');
 $export = $_GET['export'] ?? '';
 
-// Fetch all cranes for the dropdown
-$stmt = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY name ASC");
-$cranes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Fetch cranes for dropdown (filtered by assignment for 'user' role)
+$currentUserData = getCurrentUser();
+if ($currentUserData && $currentUserData['role'] === 'user') {
+    $assignedCranes = getUserAssignedCranes($currentUserData['id']);
+    if (!empty($assignedCranes)) {
+        $placeholders = implode(',', array_fill(0, count($assignedCranes), '?'));
+        $stmt = $pdo->prepare("SELECT crane_id, name FROM cranes WHERE crane_id IN ($placeholders) ORDER BY name ASC");
+        $stmt->execute($assignedCranes);
+        $cranes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $cranes = [];
+    }
+    // Block access to unassigned crane
+    if ($craneId && !in_array($craneId, $assignedCranes)) {
+        $craneId = '';
+    }
+} else {
+    $stmt = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY name ASC");
+    $cranes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 $faultEvents = [];
 $totalEvents = 0;
@@ -98,6 +116,7 @@ if ($craneId) {
 ?>
 
 <?php require_once 'includes/header.php'; ?>
+<?php require_once 'includes/sidebar.php'; ?>
 
 <!-- Page Header -->
 <div class="row mb-4 align-items-center">

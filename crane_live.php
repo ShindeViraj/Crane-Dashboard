@@ -2,8 +2,15 @@
 require_once 'includes/auth.php';
 requireLogin();
 
-$pageTitle = 'Crane Live Dashboard';
+// Verify crane access for 'user' role
 $craneId = isset($_GET['crane_id']) ? htmlspecialchars($_GET['crane_id']) : '1';
+if (!canAccessCrane($craneId)) {
+    $_SESSION['flash_error'] = 'You do not have access to this crane.';
+    header('Location: dashboard.php');
+    exit;
+}
+
+$pageTitle = 'Crane Live Dashboard';
 $pdo = getDbConnection();
 $craneInfo = $pdo->prepare("SELECT * FROM cranes WHERE crane_id = :cid");
 $craneInfo->execute([':cid' => $craneId]);
