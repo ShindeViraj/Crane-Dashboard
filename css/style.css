@@ -1,4 +1,4 @@
-﻿/* ================================================
+/* ================================================
    BML IOT VFD Dashboard â€” Custom Styles
    Design System: Industrial Precision
    Colors: Navy (#002147), Green (#006e25), Orange (#E67E22)
@@ -96,19 +96,19 @@ a {
 }
 
 .sidebar-logo {
-    min-height: 72px;
+    min-height: 60px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 14px 12px;
+    gap: 8px;
+    padding: 10px 12px;
     background: var(--primary-gradient);
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .logo-img-wrap {
     flex-shrink: 0;
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     background: rgba(255,255,255,0.12);
     border-radius: var(--radius);
     display: flex;
@@ -119,10 +119,10 @@ a {
 }
 
 .sidebar-logo-img {
-    width: 44px;
-    height: 44px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 .logo-icon {
@@ -146,9 +146,9 @@ a {
 .logo-brand {
     font-family: 'Manrope', sans-serif;
     font-weight: 800;
-    font-size: 14px;
+    font-size: 12px;
     color: #fff;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     line-height: 1.2;
 }
 
