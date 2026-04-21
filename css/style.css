@@ -47,6 +47,15 @@
     padding: 0;
 }
 
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow-x: hidden;  /* prevent any horizontal bleed at root level */
+    width: 100%;
+    box-sizing: border-box;
+}
+
 html {
     scroll-behavior: smooth;
 }
@@ -76,6 +85,8 @@ a {
 .app-wrapper {
     display: flex;
     min-height: 100vh;
+    overflow-x: hidden;  /* clip any child that bleeds past 100vw */
+    width: 100%;
 }
 
 /* ================================================
@@ -277,6 +288,9 @@ a {
     min-height: 100vh;
     background: var(--background);
     transition: var(--transition);
+    overflow-x: hidden;   /* prevent table bleed past sidebar */
+    max-width: calc(100vw - var(--sidebar-width));
+    box-sizing: border-box;
 }
 
 /* Topbar */
@@ -1640,4 +1654,53 @@ a {
 .btn-danger-outline:hover {
     background: #ba1a1a;
     color: #fff;
+}
+
+/* ================================================
+   GLOBAL OVERFLOW & TABLE SCROLL FIX
+   ================================================ */
+
+/* Cancel Bootstrap row's negative margins inside main-content
+   (they cause horizontal overflow on full-width pages) */
+.main-content .row {
+    --bs-gutter-x: 1.5rem;
+    margin-right: 0;
+    margin-left: 0;
+}
+
+.main-content .row > * {
+    padding-right: calc(var(--bs-gutter-x) * 0.5);
+    padding-left: calc(var(--bs-gutter-x) * 0.5);
+}
+
+/* All table wrappers inside data-cards MUST scroll horizontally
+   and NEVER push the card wider than the screen */
+.data-card .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+}
+
+/* Force table cells to stay on one line so scrollbar appears
+   instead of wrapping */
+.data-card .table-responsive table {
+    table-layout: auto;
+    min-width: max-content; /* expands for content, scrollbar handles rest */
+}
+
+.data-card .table-responsive table th,
+.data-card .table-responsive table td {
+    white-space: nowrap;
+}
+
+/* Page-level containers fully within viewport */
+.page-breadcrumb,
+.page-header,
+.row.g-4,
+.row.g-3 {
+    max-width: 100%;
+    box-sizing: border-box;
 }
