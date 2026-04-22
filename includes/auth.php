@@ -266,7 +266,7 @@ function registerUser($username, $email, $password, $displayName) {
 function attemptLogin($username, $password) {
     try {
         $pdo = getDbConnection();
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :login OR email = :login LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, username, email, display_name, role, password_hash FROM users WHERE username = :login OR email = :login LIMIT 1");
         $stmt->execute([':login' => $username]);
         $user = $stmt->fetch();
         

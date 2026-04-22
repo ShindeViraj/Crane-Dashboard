@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Reports â€” Historical data by date, all drives or individual drive
  */
@@ -25,12 +25,31 @@ if ($currentUserData && $currentUserData['role'] === 'user') {
     $cranes = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY crane_id")->fetchAll();
 }
 
-// Report parameters
+// Report parameters — strict validation
 $craneId = $_GET['crane_id'] ?? ($_POST['crane_id'] ?? '');
 $fromDate = $_GET['from'] ?? ($_POST['from'] ?? date('Y-m-d', strtotime('-7 days')));
 $toDate = $_GET['to'] ?? ($_POST['to'] ?? date('Y-m-d'));
-$driveFilter = $_GET['drive'] ?? ($_POST['drive'] ?? 'MH'); // Default to MH, avoids 40-col break
+$driveFilter = $_GET['drive'] ?? ($_POST['drive'] ?? 'MH');
 $exportCsv = isset($_GET['export']) && $_GET['export'] === 'csv';
+
+// Sanitise crane_id: allow only alphanumeric, dash, underscore (max 20 chars)
+if ($craneId !== '' && !preg_match('/^[a-zA-Z0-9_\-]{1,20}$/', $craneId)) {
+    $craneId = '';
+}
+
+// Allowlist for drive prefix — prevents SQL injection via column-name interpolation
+$allowedDrives = ['MH', 'CT', 'LT', 'AH', 'all'];
+if (!in_array($driveFilter, $allowedDrives, true)) {
+    $driveFilter = 'MH';
+}
+
+// Strict date parsing (YYYY-MM-DD)
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !strtotime($fromDate)) {
+    $fromDate = date('Y-m-d', strtotime('-7 days'));
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate) || !strtotime($toDate)) {
+    $toDate = date('Y-m-d');
+}
 
 // Build query based on filters
 $reportData = [];

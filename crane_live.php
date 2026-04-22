@@ -12,7 +12,7 @@ if (!canAccessCrane($craneId)) {
 
 $pageTitle = 'Crane Live Dashboard';
 $pdo = getDbConnection();
-$craneInfo = $pdo->prepare("SELECT * FROM cranes WHERE crane_id = :cid");
+$craneInfo = $pdo->prepare("SELECT crane_id, name, location, description FROM cranes WHERE crane_id = :cid");
 $craneInfo->execute([':cid' => $craneId]);
 $crane = $craneInfo->fetch();
 $craneName = $crane ? $crane['name'] : 'Crane ' . $craneId;

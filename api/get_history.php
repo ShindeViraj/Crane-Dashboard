@@ -25,10 +25,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 require_once __DIR__ . '/../db/config.php';
 
-$craneId = isset($_GET['crane_id']) ? intval($_GET['crane_id']) : 1;
+// Strict parameter validation
+$craneId = isset($_GET['crane_id']) ? trim($_GET['crane_id']) : '1';
+if (!preg_match('/^[a-zA-Z0-9_\-]{1,20}$/', $craneId)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid crane_id parameter.']);
+    exit;
+}
+
 $from = isset($_GET['from']) ? $_GET['from'] : date('Y-m-d', strtotime('-30 days'));
 $to = isset($_GET['to']) ? $_GET['to'] : date('Y-m-d H:i:s');
 $limit = isset($_GET['limit']) ? min(intval($_GET['limit']), 1000) : 500;
+
+// Strict date format validation
+if (!preg_match('/^\d{4}-\d{2}-\d{2}/', $from) || !strtotime($from)) {
+    $from = date('Y-m-d', strtotime('-30 days'));
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}/', $to) || !strtotime($to)) {
+    $to = date('Y-m-d H:i:s');
+}
 
 try {
     $pdo = getDbConnection();

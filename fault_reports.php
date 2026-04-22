@@ -18,6 +18,26 @@ $fromDate = $_GET['from'] ?? date('Y-m-d', strtotime('-7 days'));
 $toDate = $_GET['to'] ?? date('Y-m-d');
 $export = $_GET['export'] ?? '';
 
+// ── Phase 4: Strict input validation ──────────────────────────────
+// Sanitise crane_id: allow only alphanumeric, dash, underscore (max 20 chars)
+if ($craneId !== '' && !preg_match('/^[a-zA-Z0-9_\-]{1,20}$/', $craneId)) {
+    $craneId = '';
+}
+
+// Allowlist for drive prefix
+$allowedDrives = ['MH', 'CT', 'LT', 'AH', 'all'];
+if (!in_array($driveFilter, $allowedDrives, true)) {
+    $driveFilter = 'all';
+}
+
+// Strict date parsing (YYYY-MM-DD)
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !strtotime($fromDate)) {
+    $fromDate = date('Y-m-d', strtotime('-7 days'));
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate) || !strtotime($toDate)) {
+    $toDate = date('Y-m-d');
+}
+
 // Fetch cranes for dropdown (filtered by assignment for 'user' role)
 $currentUserData = getCurrentUser();
 if ($currentUserData && $currentUserData['role'] === 'user') {
