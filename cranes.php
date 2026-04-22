@@ -8,14 +8,30 @@ requireLogin();
 $pageTitle = 'View All Cranes';
 $pdo = getDbConnection();
 
-// Fetch all cranes with latest data timestamp
-$stmt = $pdo->query("
-    SELECT c.*, 
-           (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at
-    FROM cranes c 
-    ORDER BY c.crane_id ASC
-");
-$cranes = $stmt->fetchAll();
+// Fetch cranes (filtered by assignment for 'user' role)
+$currentUserData = getCurrentUser();
+if ($currentUserData && $currentUserData['role'] === 'user') {
+    $assignedCranes = getUserAssignedCranes($currentUserData['id']);
+    if (!empty($assignedCranes)) {
+        $placeholders = implode(',', array_fill(0, count($assignedCranes), '?'));
+        $stmt = $pdo->prepare("
+            SELECT c.*, 
+                   (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at
+            FROM cranes c WHERE c.crane_id IN ($placeholders) ORDER BY c.crane_id ASC
+        ");
+        $stmt->execute($assignedCranes);
+        $cranes = $stmt->fetchAll();
+    } else {
+        $cranes = [];
+    }
+} else {
+    $stmt = $pdo->query("
+        SELECT c.*, 
+               (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at
+        FROM cranes c ORDER BY c.crane_id ASC
+    ");
+    $cranes = $stmt->fetchAll();
+}
 
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';

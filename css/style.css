@@ -1,5 +1,5 @@
 /* ================================================
-   BML IOT VFD Dashboard — Custom Styles
+   BML IOT VFD Dashboard â€” Custom Styles
    Design System: Industrial Precision
    Colors: Navy (#002147), Green (#006e25), Orange (#E67E22)
    Fonts: Manrope (headings), Inter (body)
@@ -47,6 +47,15 @@
     padding: 0;
 }
 
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow-x: hidden;  /* prevent any horizontal bleed at root level */
+    width: 100%;
+    box-sizing: border-box;
+}
+
 html {
     scroll-behavior: smooth;
 }
@@ -76,6 +85,8 @@ a {
 .app-wrapper {
     display: flex;
     min-height: 100vh;
+    overflow-x: hidden;  /* clip any child that bleeds past 100vw */
+    width: 100%;
 }
 
 /* ================================================
@@ -96,19 +107,19 @@ a {
 }
 
 .sidebar-logo {
-    min-height: 72px;
+    min-height: 60px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 14px 12px;
+    gap: 8px;
+    padding: 10px 12px;
     background: var(--primary-gradient);
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .logo-img-wrap {
     flex-shrink: 0;
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
     background: rgba(255,255,255,0.12);
     border-radius: var(--radius);
     display: flex;
@@ -119,10 +130,10 @@ a {
 }
 
 .sidebar-logo-img {
-    width: 44px;
-    height: 44px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 .logo-icon {
@@ -146,9 +157,9 @@ a {
 .logo-brand {
     font-family: 'Manrope', sans-serif;
     font-weight: 800;
-    font-size: 14px;
+    font-size: 12px;
     color: #fff;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     line-height: 1.2;
 }
 
@@ -277,6 +288,9 @@ a {
     min-height: 100vh;
     background: var(--background);
     transition: var(--transition);
+    overflow-x: hidden;   /* prevent table bleed past sidebar */
+    max-width: calc(100vw - var(--sidebar-width));
+    box-sizing: border-box;
 }
 
 /* Topbar */
@@ -1547,4 +1561,146 @@ a {
 
 .fullscreen-overlay .table-responsive {
     max-height: calc(100vh - 120px) !important;
+}
+
+/* ================================================
+   REPORT & TABLE AUTO-FIT
+   ================================================ */
+/* Ensure filter buttons stay within viewport */
+.report-filter-form {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.report-filter-form .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Report table: fit to card width, scroll horizontally for extra columns */
+.data-card .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.data-card .table-responsive table {
+    min-width: 600px; /* ensures scroll kicks in for wide tables */
+    table-layout: auto;
+}
+
+.data-card .table-responsive table th,
+.data-card .table-responsive table td {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+/* Allow dropdown menus to overflow cards (user management, etc.) */
+.data-card {
+    overflow: visible;
+}
+
+/* Keep card shadow clip but not content overflow */
+.data-card .table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+/* Card header bar: wrap on small screens */
+.card-header-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Admin users table: compact actions column */
+#users-table td:last-child .d-flex {
+    flex-wrap: nowrap;
+}
+
+/* Alert styling for RBAC messages */
+.alert-custom {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.alert-success-custom {
+    background: rgba(0, 110, 37, 0.08);
+    color: #006e25;
+}
+
+.alert-error-custom {
+    background: rgba(186, 26, 26, 0.08);
+    color: #ba1a1a;
+}
+
+/* Delete button outline style */
+.btn-danger-outline {
+    color: #ba1a1a;
+    border: 1px solid #ba1a1a;
+    background: transparent;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.btn-danger-outline:hover {
+    background: #ba1a1a;
+    color: #fff;
+}
+
+/* ================================================
+   GLOBAL OVERFLOW & TABLE SCROLL FIX
+   ================================================ */
+
+/* Cancel Bootstrap row's negative margins inside main-content
+   (they cause horizontal overflow on full-width pages) */
+.main-content .row {
+    --bs-gutter-x: 1.5rem;
+    margin-right: 0;
+    margin-left: 0;
+}
+
+.main-content .row > * {
+    padding-right: calc(var(--bs-gutter-x) * 0.5);
+    padding-left: calc(var(--bs-gutter-x) * 0.5);
+}
+
+/* All table wrappers inside data-cards MUST scroll horizontally
+   and NEVER push the card wider than the screen */
+.data-card .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+}
+
+/* Force table cells to stay on one line so scrollbar appears
+   instead of wrapping */
+.data-card .table-responsive table {
+    table-layout: auto;
+    min-width: max-content; /* expands for content, scrollbar handles rest */
+}
+
+.data-card .table-responsive table th,
+.data-card .table-responsive table td {
+    white-space: nowrap;
+}
+
+/* Page-level containers fully within viewport */
+.page-breadcrumb,
+.page-header,
+.row.g-4,
+.row.g-3 {
+    max-width: 100%;
+    box-sizing: border-box;
 }

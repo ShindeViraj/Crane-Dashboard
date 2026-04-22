@@ -3,7 +3,7 @@
  * Manage Cranes — Add, Edit, Delete cranes
  */
 require_once 'includes/auth.php';
-requireLogin();
+requireRole(['developer', 'admin']);
 
 $pageTitle = 'Manage Cranes';
 $pdo = getDbConnection();
