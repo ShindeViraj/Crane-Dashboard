@@ -28,10 +28,36 @@ if (!in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT'])) {
 
 require_once __DIR__ . '/../db/config.php';
 
-// Read JSON input
+// ── Phase 5: Payload Size Limit (32 KB max for single records) ────
 $rawInput = file_get_contents('php://input');
+if (strlen($rawInput) > 32768) {
+    http_response_code(413);
+    echo json_encode(['error' => 'Payload too large. Maximum 32 KB.']);
+    exit;
+}
 
-// Aggressive sanitization: Remove any raw ASCII control characters (0x00-0x1F) from the raw string
+// ── Phase 5: Per-IP Rate Limiting (60 req/min) ───────────────────
+$rateLimitDir = sys_get_temp_dir() . '/bml_ratelimit';
+if (!is_dir($rateLimitDir)) { @mkdir($rateLimitDir, 0755, true); }
+$clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$rateFile = $rateLimitDir . '/' . md5($clientIp . '_receive') . '.json';
+$rateWindow = 60; // seconds
+$rateMax = 60;     // max requests per window
+
+$rateData = file_exists($rateFile) ? json_decode(file_get_contents($rateFile), true) : null;
+if (!$rateData || (time() - ($rateData['window_start'] ?? 0)) > $rateWindow) {
+    $rateData = ['window_start' => time(), 'count' => 0];
+}
+$rateData['count']++;
+file_put_contents($rateFile, json_encode($rateData), LOCK_EX);
+
+if ($rateData['count'] > $rateMax) {
+    http_response_code(429);
+    echo json_encode(['error' => 'Rate limit exceeded. Max ' . $rateMax . ' requests per minute.']);
+    exit;
+}
+
+// Aggressive sanitization: Remove any raw ASCII control characters (0x00-0x1F)
 // VFD/Modbus drivers often append trailing null bytes or raw hex dumps that crash JSON parsers.
 $cleanInput = preg_replace('/[\x00-\x1F\x7F]/', '', $rawInput);
 
@@ -39,13 +65,12 @@ $data = json_decode($cleanInput, true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
-    echo json_encode([
-        'error' => 'Invalid JSON payload.'
-    ]);
+    echo json_encode(['error' => 'Invalid JSON payload.']);
     exit;
 }
 
-// Define expected columns
+// ── Phase 5: Schema Validation ────────────────────────────────────
+// Define expected columns (allowlist)
 $columns = [
     'Timestamp', 'crane_id',
     'MH_Drive_status', 'MH_Output_frequency', 'MH_Motor_current', 'MH_Motor_torque',
@@ -65,6 +90,58 @@ $columns = [
     'AH_Motion_run_time', 'AH_Logic_input', 'AH_Logic_output', 'AH_Altivar_fault_code',
     'AH_Encoder', 'AH_Load_data', 'AH_di'
 ];
+
+// Reject unknown keys
+$unknownKeys = array_diff(array_keys($data), $columns);
+if (!empty($unknownKeys)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Unknown fields in payload: ' . implode(', ', array_slice($unknownKeys, 0, 5))]);
+    exit;
+}
+
+// crane_id validation
+if (isset($data['crane_id']) && !preg_match('/^[a-zA-Z0-9_\-]{1,20}$/', (string)$data['crane_id'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid crane_id value.']);
+    exit;
+}
+
+// Numeric range enforcement for VFD parameters
+foreach ($data as $key => $val) {
+    if ($key === 'Timestamp' || $key === 'crane_id') continue;
+    if ($val !== null && $val !== '' && !is_numeric($val)) {
+        // Allow string-encoded numbers from VFD drivers
+        if (!is_numeric(str_replace([' ', ','], '', (string)$val))) {
+            http_response_code(400);
+            echo json_encode(['error' => "Non-numeric value for field '$key'."]);
+            exit;
+        }
+    }
+    // Range: VFD values should be within reasonable industrial bounds
+    if (is_numeric($val) && (abs((float)$val) > 100000)) {
+        http_response_code(400);
+        echo json_encode(['error' => "Value out of range for field '$key'."]);
+        exit;
+    }
+}
+
+// ── Phase 5: Anti-Replay — reject timestamps > 24h old or in the future ──
+if (isset($data['Timestamp'])) {
+    $ts = strtotime($data['Timestamp']);
+    if ($ts !== false) {
+        $now = time();
+        if ($ts < ($now - 86400)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Timestamp too old. Data must be less than 24 hours old.']);
+            exit;
+        }
+        if ($ts > ($now + 300)) { // 5 min future tolerance for clock skew
+            http_response_code(400);
+            echo json_encode(['error' => 'Timestamp is in the future.']);
+            exit;
+        }
+    }
+}
 
 // Build insert data — only include columns that exist in the payload
 $insertCols = [];

@@ -29,13 +29,40 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once __DIR__ . '/../db/config.php';
 
-// Read JSON input
+// ── Phase 5: Payload Size Limit (5 MB max for bulk) ──────────────
 $rawInput = file_get_contents('php://input');
+if (strlen($rawInput) > 5242880) {
+    http_response_code(413);
+    echo json_encode(['error' => 'Payload too large. Maximum 5 MB for bulk insert.']);
+    exit;
+}
+
+// ── Phase 5: Per-IP Rate Limiting (10 req/min for bulk) ──────────
+$rateLimitDir = sys_get_temp_dir() . '/bml_ratelimit';
+if (!is_dir($rateLimitDir)) { @mkdir($rateLimitDir, 0755, true); }
+$clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$rateFile = $rateLimitDir . '/' . md5($clientIp . '_bulk') . '.json';
+$rateWindow = 60;
+$rateMax = 10;
+
+$rateData = file_exists($rateFile) ? json_decode(file_get_contents($rateFile), true) : null;
+if (!$rateData || (time() - ($rateData['window_start'] ?? 0)) > $rateWindow) {
+    $rateData = ['window_start' => time(), 'count' => 0];
+}
+$rateData['count']++;
+file_put_contents($rateFile, json_encode($rateData), LOCK_EX);
+
+if ($rateData['count'] > $rateMax) {
+    http_response_code(429);
+    echo json_encode(['error' => 'Rate limit exceeded. Max ' . $rateMax . ' bulk requests per minute.']);
+    exit;
+}
+
 $records = json_decode($rawInput, true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid JSON: ' . json_last_error_msg()]);
+    echo json_encode(['error' => 'Invalid JSON payload.']);
     exit;
 }
 
@@ -49,6 +76,13 @@ if (!is_array($records) || empty($records)) {
 // If a single object was sent, wrap it
 if (isset($records['Timestamp']) || isset($records['id'])) {
     $records = [$records];
+}
+
+// ── Phase 5: Max record cap (1000 per batch) ─────────────────────
+if (count($records) > 1000) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Too many records. Maximum 1000 per batch.']);
+    exit;
 }
 
 // Define all valid columns (excluding 'id' since the cloud DB has its own auto-increment)
