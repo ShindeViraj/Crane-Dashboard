@@ -7,15 +7,54 @@
 
 require_once __DIR__ . '/../db/config.php';
 
-// Start session
+// ── Session Hardening ──────────────────────────────────────────────
+// Prevent session ID via URL params; reject uninitialized session IDs
+ini_set('session.use_only_cookies', 1);
+ini_set('session.use_strict_mode', 1);
+
 if (session_status() === PHP_SESSION_NONE) {
+    // Detect HTTPS for dynamic Secure flag
+    $isSecure = (
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+        (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+    );
+
     session_set_cookie_params([
         'lifetime' => 86400 * 7, // 7 days
-        'path' => '/',
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $isSecure,
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
     session_start();
+}
+
+// ── Inactivity Timeout (30 minutes) ────────────────────────────────
+define('SESSION_TIMEOUT', 1800); // seconds
+
+if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > SESSION_TIMEOUT)) {
+        // Session idle too long — force logout
+        $isApiRequest = (strpos($_SERVER['SCRIPT_NAME'] ?? '', '/api/') !== false);
+        logout();
+
+        if ($isApiRequest) {
+            // API callers get a JSON response, not a redirect
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Session expired due to inactivity.']);
+            exit;
+        }
+
+        // Start a fresh session for the flash message
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $_SESSION['flash_error'] = 'Your session has expired due to inactivity. Please log in again.';
+        header('Location: login.php');
+        exit;
+    }
+    // Touch the timestamp on every valid request
+    $_SESSION['last_activity'] = time();
 }
 
 /**
@@ -236,6 +275,7 @@ function attemptLogin($username, $password) {
             $_SESSION['display_name'] = $user['display_name'];
             $_SESSION['role'] = $user['role'];
             $_SESSION['login_time'] = time();
+            $_SESSION['last_activity'] = time(); // initialise inactivity timer
             
             // Regenerate session ID for security and rotate CSRF token
             session_regenerate_id(true);

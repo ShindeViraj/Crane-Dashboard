@@ -12,6 +12,13 @@ if (isLoggedIn()) {
 
 // Handle login form submission
 $error = '';
+
+// Pick up flash errors (e.g. session timeout redirect)
+if (!empty($_SESSION['flash_error'])) {
+    $error = $_SESSION['flash_error'];
+    unset($_SESSION['flash_error']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // CSRF check — fail closed
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
