@@ -5,12 +5,36 @@ requireLogin();
 
 $pdo = getDbConnection();
 
-// Fetch all cranes
-$cranes = $pdo->query("SELECT c.*, (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at FROM cranes c ORDER BY c.crane_id")->fetchAll();
+// Fetch cranes (filtered by assignment for 'user' role)
+$currentUserData = getCurrentUser();
+if ($currentUserData && $currentUserData['role'] === 'user') {
+    $assignedCranes = getUserAssignedCranes($currentUserData['id']);
+    if (!empty($assignedCranes)) {
+        $placeholders = implode(',', array_fill(0, count($assignedCranes), '?'));
+        $stmt = $pdo->prepare("SELECT c.*, (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at FROM cranes c WHERE c.crane_id IN ($placeholders) ORDER BY c.crane_id");
+        $stmt->execute($assignedCranes);
+        $cranes = $stmt->fetchAll();
+    } else {
+        $cranes = [];
+    }
+} else {
+    $cranes = $pdo->query("SELECT c.*, (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at FROM cranes c ORDER BY c.crane_id")->fetchAll();
+}
 
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
 ?>
+<!-- Flash Error (from RBAC redirects) -->
+<?php if (isset($_SESSION['flash_error'])): ?>
+<div class="row mb-3">
+    <div class="col-12" style="padding-left:28px;padding-right:28px;">
+        <div class="alert-custom alert-error-custom">
+            <i class="bi bi-exclamation-circle"></i>
+            <?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb" class="page-breadcrumb">

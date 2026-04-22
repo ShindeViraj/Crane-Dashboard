@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     
     <!-- Custom CSS -->
-    <link href="css/style.css?v=2" rel="stylesheet">
+    <link href="css/style.css?v=3" rel="stylesheet">
 </head>
 <body>
     <div class="app-wrapper">

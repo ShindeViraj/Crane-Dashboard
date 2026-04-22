@@ -1,24 +1,29 @@
--- BML IOT VFD Monitoring Database Schema (v2)
+-- BML IOT VFD Monitoring Database Schema (v3 — RBAC)
 -- Compatible with ProFreeHost / unaux.com hosting
--- Supports: Auth, Crane Management, Massive Data, Reporting
+-- Supports: Auth, RBAC, Crane Assignment, Massive Data, Reporting
 
 -- ============================================
--- USERS TABLE (Authentication)
+-- USERS TABLE (Authentication + RBAC)
 -- ============================================
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) DEFAULT NULL,
+    email VARCHAR(100) DEFAULT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    display_name VARCHAR(100) DEFAULT 'Admin User',
-    role ENUM('admin','operator','viewer') DEFAULT 'admin',
+    display_name VARCHAR(100) DEFAULT 'New User',
+    role ENUM('developer','admin','user') DEFAULT 'user',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Default admin user (password: admin123)
 INSERT INTO users (username, email, password_hash, display_name, role) VALUES
-('admin', 'admin@bmliot.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', 'admin')
+('admin', 'admin@squarewave.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', 'admin')
+ON DUPLICATE KEY UPDATE id=id;
+
+-- Default developer user (password: dev123 — CHANGE IMMEDIATELY)
+INSERT INTO users (username, email, password_hash, display_name, role) VALUES
+('developer', 'dev@squarewave.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Developer', 'developer')
 ON DUPLICATE KEY UPDATE id=id;
 
 -- ============================================
@@ -40,6 +45,19 @@ CREATE TABLE IF NOT EXISTS cranes (
 INSERT INTO cranes (crane_id, name, location) VALUES
 ('1', 'Crane 1', 'SA3')
 ON DUPLICATE KEY UPDATE id=id;
+
+-- ============================================
+-- USER-CRANE ASSIGNMENTS (RBAC Data Visibility)
+-- ============================================
+CREATE TABLE IF NOT EXISTS user_cranes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    crane_id VARCHAR(50) NOT NULL,
+    assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_assignment (user_id, crane_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (crane_id) REFERENCES cranes(crane_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ============================================
 -- CRANE DATA TABLE (VFD Parameters)
@@ -121,3 +139,10 @@ CREATE TABLE IF NOT EXISTS crane_data (
     INDEX idx_crane_id (crane_id),
     INDEX idx_crane_timestamp (crane_id, Timestamp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ============================================
+-- MIGRATION SCRIPT (run on existing databases)
+-- ============================================
+-- ALTER TABLE users MODIFY COLUMN role ENUM('developer','admin','user') DEFAULT 'user';
+-- ALTER TABLE users MODIFY COLUMN email VARCHAR(100) DEFAULT NULL UNIQUE;
+-- Then run the CREATE TABLE user_cranes and INSERT developer above.

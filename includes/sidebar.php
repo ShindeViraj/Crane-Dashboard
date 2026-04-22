@@ -29,6 +29,10 @@
             </li>
         </ul>
         
+        <?php $__sidebarUser = getCurrentUser(); ?>
+        
+        <!-- Admin/Developer Management Section -->
+        <?php if ($__sidebarUser && in_array($__sidebarUser['role'], ['developer', 'admin'])): ?>
         <div class="nav-section-label" style="margin-top:16px;">Management</div>
         <ul class="nav flex-column">
             <li class="nav-item">
@@ -37,6 +41,18 @@
                     <span>Manage Cranes</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'admin_users.php' ? 'active' : ''; ?>" href="admin_users.php" id="nav-admin-users">
+                    <i class="bi bi-people"></i>
+                    <span>User Management</span>
+                </a>
+            </li>
+        </ul>
+        <?php endif; ?>
+        
+        <!-- Reports Section (visible to all) -->
+        <div class="nav-section-label" style="margin-top:16px;">Reports</div>
+        <ul class="nav flex-column">
             <li class="nav-item">
                 <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'reports.php' ? 'active' : ''; ?>" href="reports.php" id="nav-reports">
                     <i class="bi bi-file-earmark-bar-graph"></i>
@@ -49,6 +65,11 @@
                     <span>Fault History</span>
                 </a>
             </li>
+        </ul>
+        
+        <!-- Settings (visible to all) -->
+        <div class="nav-section-label" style="margin-top:16px;">Account</div>
+        <ul class="nav flex-column">
             <li class="nav-item">
                 <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>" href="settings.php" id="nav-settings">
                     <i class="bi bi-sliders"></i>
@@ -67,7 +88,7 @@
             </div>
             <div class="user-info">
                 <span class="user-name"><?php echo htmlspecialchars($currentUser['display_name'] ?? 'Admin User'); ?></span>
-                <span class="user-role"><?php echo ucfirst($currentUser['role'] ?? 'admin'); ?></span>
+                <span class="user-role"><?php echo ucfirst($currentUser['role'] ?? 'user'); ?></span>
             </div>
             <a href="logout.php" class="sidebar-logout-btn" title="Logout" id="btn-logout">
                 <i class="bi bi-box-arrow-right"></i>

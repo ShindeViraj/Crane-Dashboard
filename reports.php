@@ -1,6 +1,6 @@
-<?php
+﻿<?php
 /**
- * Reports — Historical data by date, all drives or individual drive
+ * Reports â€” Historical data by date, all drives or individual drive
  */
 require_once 'includes/auth.php';
 require_once 'includes/fault_codes.php';
@@ -9,8 +9,21 @@ requireLogin();
 $pageTitle = 'Reports';
 $pdo = getDbConnection();
 
-// Get all cranes for dropdown
-$cranes = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY crane_id")->fetchAll();
+// Get cranes for dropdown (filtered by assignment for 'user' role)
+$currentUserData = getCurrentUser();
+if ($currentUserData && $currentUserData['role'] === 'user') {
+    $assignedCranes = getUserAssignedCranes($currentUserData['id']);
+    if (!empty($assignedCranes)) {
+        $placeholders = implode(',', array_fill(0, count($assignedCranes), '?'));
+        $stmt = $pdo->prepare("SELECT crane_id, name FROM cranes WHERE crane_id IN ($placeholders) ORDER BY crane_id");
+        $stmt->execute($assignedCranes);
+        $cranes = $stmt->fetchAll();
+    } else {
+        $cranes = [];
+    }
+} else {
+    $cranes = $pdo->query("SELECT crane_id, name FROM cranes ORDER BY crane_id")->fetchAll();
+}
 
 // Report parameters
 $craneId = $_GET['crane_id'] ?? ($_POST['crane_id'] ?? '');
@@ -170,13 +183,14 @@ require_once 'includes/sidebar.php';
 <div class="row g-4 mb-4">
     <div class="col-12">
         <div class="data-card" id="report-preview-card">
-            <div class="card-header-bar" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <!-- Card Header Bar -->
+            <div class="card-header-bar" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
                 <div>
-                    <div class="card-title-group">
+                    <div class="card-title-group" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <h3 class="card-title text-uppercase mb-0">
                             Report: <?php echo $driveFilter === 'all' ? 'All Drives' : $driveFilter . ' Drive'; ?>
                         </h3>
-                        <span class="status-chip status-idle-chip">
+                        <span class="status-chip <?php echo $totalRecords > 0 ? 'status-idle-chip' : 'status-offline'; ?>" style="font-weight:700;">
                             <?php echo number_format($totalRecords); ?> records
                         </span>
                     </div>
@@ -184,26 +198,28 @@ require_once 'includes/sidebar.php';
                         <?php echo htmlspecialchars($fromDate); ?> to <?php echo htmlspecialchars($toDate); ?>
                     </span>
                 </div>
-                <!-- Fullscreen Toggle Button -->
+                <!-- Expand / Minimize Button -->
                 <button type="button" class="btn btn-outline-action btn-sm" onclick="toggleFullscreen()" id="btn-fullscreen">
                     <i class="bi bi-arrows-fullscreen"></i> Expand
                 </button>
             </div>
-            
+
             <?php if (empty($reportData)): ?>
             <div class="text-center" style="padding:40px;">
                 <i class="bi bi-journal-x" style="font-size:36px;color:#c4c6cf;"></i>
                 <p style="color:#74777f;margin-top:12px;">No data found for the selected filters.</p>
             </div>
             <?php else: ?>
-            <div class="table-responsive" style="max-height:600px; max-width: 100%; overflow: auto;">
-                <table class="table table-custom table-sm mb-0" id="report-table">
-                    <thead style="position:sticky;top:0;z-index:1;">
+            <!-- Horizontal scroll wrapper â€” shows scrollbar at bottom for wide tables -->
+            <div class="table-responsive" id="report-table-wrapper"
+                 style="max-height:560px; overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+                <table class="table table-custom table-sm mb-0" id="report-table" style="min-width:900px;">
+                    <thead style="position:sticky;top:0;z-index:2;">
                         <tr>
-                            <?php 
+                            <?php
                             $headers = array_keys($reportData[0]);
                             foreach ($headers as $h): ?>
-                            <th><?php echo str_replace('_', ' ', $h); ?></th>
+                            <th style="white-space:nowrap;"><?php echo str_replace('_', ' ', $h); ?></th>
                             <?php endforeach; ?>
                         </tr>
                     </thead>
@@ -211,15 +227,15 @@ require_once 'includes/sidebar.php';
                         <?php foreach ($reportData as $row): ?>
                         <tr>
                             <?php foreach ($row as $key => $val): ?>
-                            <td <?php 
+                            <td style="white-space:nowrap;" <?php
                                 if (stripos($key, 'fault_code') !== false && intval($val) > 0) echo 'class="fault-active"';
-                                if (stripos($key, 'Drive_temp') !== false && floatval($val) > 70) echo 'class="temp-danger"';
+                                elseif (stripos($key, 'Drive_temp') !== false && floatval($val) > 70) echo 'class="temp-danger"';
                             ?>>
-                                <?php 
+                                <?php
                                     if (stripos($key, 'fault_code') !== false) {
                                         echo htmlspecialchars(getFaultCodeDescription($val));
                                     } else {
-                                        echo htmlspecialchars($val !== null ? $val : '—'); 
+                                        echo htmlspecialchars($val !== null ? $val : 'â€”');
                                     }
                                 ?>
                             </td>
@@ -229,7 +245,7 @@ require_once 'includes/sidebar.php';
                     </tbody>
                 </table>
             </div>
-            
+
             <!-- Pagination -->
             <?php if ($totalPages > 1): ?>
             <nav class="report-pagination" style="margin-top:16px;">
@@ -241,11 +257,9 @@ require_once 'includes/sidebar.php';
                         </a>
                     </li>
                     <?php endif; ?>
-                    
                     <li class="page-item disabled">
                         <span class="page-link">Page <?php echo $page; ?> of <?php echo $totalPages; ?></span>
                     </li>
-                    
                     <?php if ($page < $totalPages): ?>
                     <li class="page-item">
                         <a class="page-link" href="?crane_id=<?php echo $craneId; ?>&drive=<?php echo $driveFilter; ?>&from=<?php echo $fromDate; ?>&to=<?php echo $toDate; ?>&page=<?php echo $page+1; ?>">
@@ -261,19 +275,30 @@ require_once 'includes/sidebar.php';
     </div>
 </div>
 <?php endif; ?>
+
 <script>
 function toggleFullscreen() {
     const card = document.getElementById('report-preview-card');
-    const btn = document.getElementById('btn-fullscreen');
-    
+    const btn  = document.getElementById('btn-fullscreen');
+    const wrapper = document.getElementById('report-table-wrapper');
+
     if (card.classList.contains('fullscreen-overlay')) {
+        // Minimize
         card.classList.remove('fullscreen-overlay');
         btn.innerHTML = '<i class="bi bi-arrows-fullscreen"></i> Expand';
+        if (wrapper) wrapper.style.maxHeight = '560px';
     } else {
+        // Expand to fullscreen
         card.classList.add('fullscreen-overlay');
-        btn.innerHTML = '<i class="bi bi-fullscreen-exit"></i> Collapse';
+        btn.innerHTML = '<i class="bi bi-fullscreen-exit"></i> Minimize';
+        if (wrapper) wrapper.style.maxHeight = 'calc(100vh - 180px)';
     }
 }
+
+// If password tab had errors, show it
+<?php if (isset($passwordMsg) && $passwordMsg && isset($passwordMsgType) && $passwordMsgType === 'error'): ?>
+document.getElementById('password-tab') && document.getElementById('password-tab').click();
+<?php endif; ?>
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
