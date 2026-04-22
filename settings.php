@@ -12,41 +12,49 @@ $profileMsgType = '';
 $passwordMsg = '';
 $passwordMsgType = '';
 
-// Handle profile update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form_type'] ?? '') === 'profile') {
-    $displayName = trim($_POST['display_name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $username = trim($_POST['username'] ?? '');
-    
-    if (empty($displayName) || empty($username)) {
-        $profileMsg = 'Display name and username are required.';
-        $profileMsgType = 'error';
+// Handle POST actions — single CSRF gate for all settings forms
+$csrfError = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $csrfError = 'Session expired. Please refresh the page and try again.';
     } else {
-        $result = updateProfile($user['id'], $displayName, $email, $username);
-        $profileMsg = $result['success'] ? $result['message'] : $result['error'];
-        $profileMsgType = $result['success'] ? 'success' : 'error';
-        if ($result['success']) {
-            $user = getCurrentUser(); // Refresh user data
+        // Handle profile update
+        if (($_POST['form_type'] ?? '') === 'profile') {
+            $displayName = trim($_POST['display_name'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $username = trim($_POST['username'] ?? '');
+            
+            if (empty($displayName) || empty($username)) {
+                $profileMsg = 'Display name and username are required.';
+                $profileMsgType = 'error';
+            } else {
+                $result = updateProfile($user['id'], $displayName, $email, $username);
+                $profileMsg = $result['success'] ? $result['message'] : $result['error'];
+                $profileMsgType = $result['success'] ? 'success' : 'error';
+                if ($result['success']) {
+                    $user = getCurrentUser();
+                }
+            }
         }
-    }
-}
-
-// Handle password change
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form_type'] ?? '') === 'password') {
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-    
-    if (empty($currentPassword) || empty($newPassword)) {
-        $passwordMsg = 'All password fields are required.';
-        $passwordMsgType = 'error';
-    } elseif ($newPassword !== $confirmPassword) {
-        $passwordMsg = 'New passwords do not match.';
-        $passwordMsgType = 'error';
-    } else {
-        $result = changePassword($user['id'], $currentPassword, $newPassword);
-        $passwordMsg = $result['success'] ? $result['message'] : $result['error'];
-        $passwordMsgType = $result['success'] ? 'success' : 'error';
+        
+        // Handle password change
+        if (($_POST['form_type'] ?? '') === 'password') {
+            $currentPassword = $_POST['current_password'] ?? '';
+            $newPassword = $_POST['new_password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+            
+            if (empty($currentPassword) || empty($newPassword)) {
+                $passwordMsg = 'All password fields are required.';
+                $passwordMsgType = 'error';
+            } elseif ($newPassword !== $confirmPassword) {
+                $passwordMsg = 'New passwords do not match.';
+                $passwordMsgType = 'error';
+            } else {
+                $result = changePassword($user['id'], $currentPassword, $newPassword);
+                $passwordMsg = $result['success'] ? $result['message'] : $result['error'];
+                $passwordMsgType = $result['success'] ? 'success' : 'error';
+            }
+        }
     }
 }
 
@@ -64,6 +72,17 @@ require_once 'includes/sidebar.php';
 <div class="page-header">
     <h1 class="page-title">Settings</h1>
 </div>
+
+<?php if ($csrfError): ?>
+<div class="row mb-3">
+    <div class="col-12" style="padding-left:28px;padding-right:28px;">
+        <div class="alert-custom alert-error-custom">
+            <i class="bi bi-shield-exclamation"></i>
+            <?php echo htmlspecialchars($csrfError); ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Settings Tabs -->
 <div class="row mb-4" style="padding:0 28px;">
@@ -106,6 +125,7 @@ require_once 'includes/sidebar.php';
                     <?php endif; ?>
                     
                     <form method="POST" id="form-profile">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                         <input type="hidden" name="form_type" value="profile">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -154,6 +174,7 @@ require_once 'includes/sidebar.php';
                     <?php endif; ?>
                     
                     <form method="POST" id="form-password">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                         <input type="hidden" name="form_type" value="password">
                         <div class="mb-3">
                             <label class="settings-label" for="current_password">Current Password</label>

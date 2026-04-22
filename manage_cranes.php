@@ -12,51 +12,57 @@ $msgType = '';
 
 // Handle form actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    
-    if ($action === 'add') {
-        $craneId = trim($_POST['crane_id'] ?? '');
-        $name = trim($_POST['name'] ?? '');
-        $location = trim($_POST['location'] ?? '');
-        $description = trim($_POST['description'] ?? '');
+    // CSRF check — fail closed
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Session expired. Please refresh the page and try again.';
+        $msgType = 'error';
+    } else {
+        $action = $_POST['action'] ?? '';
         
-        if (empty($craneId) || empty($name)) {
-            $message = 'Crane ID and Name are required.';
-            $msgType = 'error';
-        } else {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, location, description) VALUES (:cid, :name, :loc, :desc)");
-                $stmt->execute([':cid' => $craneId, ':name' => $name, ':loc' => $location, ':desc' => $description]);
-                $message = "Crane '$name' (ID: $craneId) added successfully!";
-                $msgType = 'success';
-            } catch (PDOException $e) {
-                if (strpos($e->getMessage(), 'Duplicate') !== false) {
-                    $message = "Crane ID '$craneId' already exists.";
-                } else {
-                    $message = 'Error: ' . $e->getMessage();
-                }
+        if ($action === 'add') {
+            $craneId = trim($_POST['crane_id'] ?? '');
+            $name = trim($_POST['name'] ?? '');
+            $location = trim($_POST['location'] ?? '');
+            $description = trim($_POST['description'] ?? '');
+            
+            if (empty($craneId) || empty($name)) {
+                $message = 'Crane ID and Name are required.';
                 $msgType = 'error';
+            } else {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, location, description) VALUES (:cid, :name, :loc, :desc)");
+                    $stmt->execute([':cid' => $craneId, ':name' => $name, ':loc' => $location, ':desc' => $description]);
+                    $message = "Crane '$name' (ID: $craneId) added successfully!";
+                    $msgType = 'success';
+                } catch (PDOException $e) {
+                    if (strpos($e->getMessage(), 'Duplicate') !== false) {
+                        $message = "Crane ID '$craneId' already exists.";
+                    } else {
+                        $message = 'Failed to add crane. Please try again.';
+                    }
+                    $msgType = 'error';
+                }
             }
-        }
-    } elseif ($action === 'edit') {
-        $id = intval($_POST['id'] ?? 0);
-        $name = trim($_POST['name'] ?? '');
-        $location = trim($_POST['location'] ?? '');
-        $description = trim($_POST['description'] ?? '');
-        
-        if ($id && $name) {
-            $stmt = $pdo->prepare("UPDATE cranes SET name = :name, location = :loc, description = :desc WHERE id = :id");
-            $stmt->execute([':name' => $name, ':loc' => $location, ':desc' => $description, ':id' => $id]);
-            $message = "Crane updated successfully!";
-            $msgType = 'success';
-        }
-    } elseif ($action === 'delete') {
-        $id = intval($_POST['id'] ?? 0);
-        if ($id) {
-            $stmt = $pdo->prepare("DELETE FROM cranes WHERE id = :id");
-            $stmt->execute([':id' => $id]);
-            $message = "Crane deleted successfully.";
-            $msgType = 'success';
+        } elseif ($action === 'edit') {
+            $id = intval($_POST['id'] ?? 0);
+            $name = trim($_POST['name'] ?? '');
+            $location = trim($_POST['location'] ?? '');
+            $description = trim($_POST['description'] ?? '');
+            
+            if ($id && $name) {
+                $stmt = $pdo->prepare("UPDATE cranes SET name = :name, location = :loc, description = :desc WHERE id = :id");
+                $stmt->execute([':name' => $name, ':loc' => $location, ':desc' => $description, ':id' => $id]);
+                $message = "Crane updated successfully!";
+                $msgType = 'success';
+            }
+        } elseif ($action === 'delete') {
+            $id = intval($_POST['id'] ?? 0);
+            if ($id) {
+                $stmt = $pdo->prepare("DELETE FROM cranes WHERE id = :id");
+                $stmt->execute([':id' => $id]);
+                $message = "Crane deleted successfully.";
+                $msgType = 'success';
+            }
         }
     }
 }
@@ -96,6 +102,7 @@ require_once 'includes/sidebar.php';
         <div class="data-card">
             <h3 class="card-title text-uppercase"><i class="bi bi-plus-circle"></i> Add New Crane</h3>
             <form method="POST" id="form-add-crane">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                 <input type="hidden" name="action" value="add">
                 <div class="mb-3">
                     <label class="settings-label" for="add-crane-id">Crane ID *</label>
@@ -164,6 +171,7 @@ require_once 'includes/sidebar.php';
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this crane? Data will NOT be deleted.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?php echo $crane['id']; ?>">
                                         <button type="submit" class="btn btn-sm btn-danger-outline" title="Delete">
@@ -187,6 +195,7 @@ require_once 'includes/sidebar.php';
     <div class="modal-dialog">
         <div class="modal-content" style="border-radius:12px;border:none;">
             <form method="POST" id="form-edit-crane">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="id" id="edit-id">
                 <div class="modal-header" style="border:none;padding:24px 24px 12px;">

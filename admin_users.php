@@ -14,94 +14,97 @@ $msgType = '';
 
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    
-    // Change user role
-    if ($action === 'change_role') {
-        $targetId = intval($_POST['user_id'] ?? 0);
-        $newRole = $_POST['new_role'] ?? '';
+    // CSRF check — fail closed for all admin actions
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Session expired. Please refresh the page and try again.';
+        $msgType = 'error';
+    } else {
+        $action = $_POST['action'] ?? '';
         
-        // Fetch target user's current role
-        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = :id");
-        $stmt->execute([':id' => $targetId]);
-        $target = $stmt->fetch();
-        
-        if ($targetId === $currentUser['id']) {
-            $message = 'You cannot change your own role.';
-            $msgType = 'error';
-        } elseif (!$target) {
-            $message = 'User not found.';
-            $msgType = 'error';
-        } elseif ($currentUser['role'] === 'admin' && $target['role'] === 'developer') {
-            // Admin cannot alter a developer
-            $message = 'Admins cannot modify developer accounts.';
-            $msgType = 'error';
-        } elseif ($currentUser['role'] === 'developer' && $target['role'] === 'admin') {
-            // Developer cannot alter an admin
-            $message = 'Developers cannot modify admin accounts.';
-            $msgType = 'error';
-        } elseif ($newRole === 'developer' && $currentUser['role'] !== 'developer') {
-            $message = 'Only developers can promote users to developer role.';
-            $msgType = 'error';
-        } elseif ($newRole === 'admin' && $currentUser['role'] !== 'admin' && $currentUser['role'] !== 'developer') {
-            $message = 'You do not have permission to set this role.';
-            $msgType = 'error';
-        } elseif (in_array($newRole, ['developer', 'admin', 'user'])) {
-            $stmt = $pdo->prepare("UPDATE users SET role = :role WHERE id = :id");
-            $stmt->execute([':role' => $newRole, ':id' => $targetId]);
-            $message = "User role updated to '$newRole' successfully.";
-            $msgType = 'success';
-        }
-    }
-    
-    // Delete user
-    if ($action === 'delete_user') {
-        $targetId = intval($_POST['user_id'] ?? 0);
-        
-        // Fetch target user's current role
-        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = :id");
-        $stmt->execute([':id' => $targetId]);
-        $target = $stmt->fetch();
-        
-        if ($targetId === $currentUser['id']) {
-            $message = 'You cannot delete your own account.';
-            $msgType = 'error';
-        } elseif (!$target) {
-            $message = 'User not found.';
-            $msgType = 'error';
-        } elseif ($currentUser['role'] === 'admin' && $target['role'] === 'developer') {
-            $message = 'Admins cannot delete developer accounts.';
-            $msgType = 'error';
-        } elseif ($currentUser['role'] === 'developer' && $target['role'] === 'admin') {
-            $message = 'Developers cannot delete admin accounts.';
-            $msgType = 'error';
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
+        // Change user role
+        if ($action === 'change_role') {
+            $targetId = intval($_POST['user_id'] ?? 0);
+            $newRole = $_POST['new_role'] ?? '';
+            
+            // Fetch target user's current role
+            $stmt = $pdo->prepare("SELECT role FROM users WHERE id = :id");
             $stmt->execute([':id' => $targetId]);
-            $message = 'User deleted successfully.';
-            $msgType = 'success';
-        }
-    }
-    
-    // Assign cranes
-    if ($action === 'save_assignments') {
-        $targetId = intval($_POST['user_id'] ?? 0);
-        $assignedCranes = $_POST['cranes'] ?? [];
-        
-        // Clear existing assignments
-        $stmt = $pdo->prepare("DELETE FROM user_cranes WHERE user_id = :uid");
-        $stmt->execute([':uid' => $targetId]);
-        
-        // Insert new
-        if (!empty($assignedCranes)) {
-            $insertStmt = $pdo->prepare("INSERT IGNORE INTO user_cranes (user_id, crane_id) VALUES (:uid, :cid)");
-            foreach ($assignedCranes as $cid) {
-                $insertStmt->execute([':uid' => $targetId, ':cid' => $cid]);
+            $target = $stmt->fetch();
+            
+            if ($targetId === $currentUser['id']) {
+                $message = 'You cannot change your own role.';
+                $msgType = 'error';
+            } elseif (!$target) {
+                $message = 'User not found.';
+                $msgType = 'error';
+            } elseif ($currentUser['role'] === 'admin' && $target['role'] === 'developer') {
+                $message = 'Admins cannot modify developer accounts.';
+                $msgType = 'error';
+            } elseif ($currentUser['role'] === 'developer' && $target['role'] === 'admin') {
+                $message = 'Developers cannot modify admin accounts.';
+                $msgType = 'error';
+            } elseif ($newRole === 'developer' && $currentUser['role'] !== 'developer') {
+                $message = 'Only developers can promote users to developer role.';
+                $msgType = 'error';
+            } elseif ($newRole === 'admin' && $currentUser['role'] !== 'admin' && $currentUser['role'] !== 'developer') {
+                $message = 'You do not have permission to set this role.';
+                $msgType = 'error';
+            } elseif (in_array($newRole, ['developer', 'admin', 'user'])) {
+                $stmt = $pdo->prepare("UPDATE users SET role = :role WHERE id = :id");
+                $stmt->execute([':role' => $newRole, ':id' => $targetId]);
+                $message = "User role updated to '$newRole' successfully.";
+                $msgType = 'success';
             }
         }
         
-        $message = 'Crane assignments updated successfully (' . count($assignedCranes) . ' cranes assigned).';
-        $msgType = 'success';
+        // Delete user
+        if ($action === 'delete_user') {
+            $targetId = intval($_POST['user_id'] ?? 0);
+            
+            $stmt = $pdo->prepare("SELECT role FROM users WHERE id = :id");
+            $stmt->execute([':id' => $targetId]);
+            $target = $stmt->fetch();
+            
+            if ($targetId === $currentUser['id']) {
+                $message = 'You cannot delete your own account.';
+                $msgType = 'error';
+            } elseif (!$target) {
+                $message = 'User not found.';
+                $msgType = 'error';
+            } elseif ($currentUser['role'] === 'admin' && $target['role'] === 'developer') {
+                $message = 'Admins cannot delete developer accounts.';
+                $msgType = 'error';
+            } elseif ($currentUser['role'] === 'developer' && $target['role'] === 'admin') {
+                $message = 'Developers cannot delete admin accounts.';
+                $msgType = 'error';
+            } else {
+                $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
+                $stmt->execute([':id' => $targetId]);
+                $message = 'User deleted successfully.';
+                $msgType = 'success';
+            }
+        }
+        
+        // Assign cranes
+        if ($action === 'save_assignments') {
+            $targetId = intval($_POST['user_id'] ?? 0);
+            $assignedCranes = $_POST['cranes'] ?? [];
+            
+            // Clear existing assignments
+            $stmt = $pdo->prepare("DELETE FROM user_cranes WHERE user_id = :uid");
+            $stmt->execute([':uid' => $targetId]);
+            
+            // Insert new
+            if (!empty($assignedCranes)) {
+                $insertStmt = $pdo->prepare("INSERT IGNORE INTO user_cranes (user_id, crane_id) VALUES (:uid, :cid)");
+                foreach ($assignedCranes as $cid) {
+                    $insertStmt->execute([':uid' => $targetId, ':cid' => $cid]);
+                }
+            }
+            
+            $message = 'Crane assignments updated successfully (' . count($assignedCranes) . ' cranes assigned).';
+            $msgType = 'success';
+        }
     }
 }
 
@@ -227,6 +230,7 @@ require_once 'includes/sidebar.php';
                                             <?php if ($currentUser['role'] === 'developer'): ?>
                                             <li>
                                                 <form method="POST" style="display:inline;">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                                     <input type="hidden" name="action" value="change_role">
                                                     <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
                                                     <input type="hidden" name="new_role" value="developer">
@@ -236,6 +240,7 @@ require_once 'includes/sidebar.php';
                                             <?php endif; ?>
                                             <li>
                                                 <form method="POST" style="display:inline;">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                                     <input type="hidden" name="action" value="change_role">
                                                     <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
                                                     <input type="hidden" name="new_role" value="admin">
@@ -244,6 +249,7 @@ require_once 'includes/sidebar.php';
                                             </li>
                                             <li>
                                                 <form method="POST" style="display:inline;">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                                     <input type="hidden" name="action" value="change_role">
                                                     <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
                                                     <input type="hidden" name="new_role" value="user">
@@ -255,6 +261,7 @@ require_once 'includes/sidebar.php';
                                     
                                     <!-- Delete -->
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Delete user @<?php echo htmlspecialchars($u['username']); ?>? This cannot be undone.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                         <input type="hidden" name="action" value="delete_user">
                                         <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
                                         <button type="submit" class="btn btn-sm btn-danger-outline" title="Delete User">
@@ -290,6 +297,7 @@ require_once 'includes/sidebar.php';
             </div>
             
             <form method="POST" id="form-crane-assignments">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                 <input type="hidden" name="action" value="save_assignments">
                 <input type="hidden" name="user_id" value="<?php echo $selectedUserId; ?>">
                 
