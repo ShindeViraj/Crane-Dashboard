@@ -68,7 +68,8 @@ try {
         'data' => $rows
     ]);
 } catch (PDOException $e) {
+    error_log('[BML-IOT] get_history query failed: ' . $e->getMessage() . ' | crane_id=' . $craneId . ' | ' . date('c'));
     http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Database error. Could not retrieve history.']);
 }
 ?>

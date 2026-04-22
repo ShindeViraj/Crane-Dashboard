@@ -40,9 +40,7 @@ $data = json_decode($cleanInput, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
     echo json_encode([
-        'error' => 'Invalid JSON: ' . json_last_error_msg(),
-        'debug_escaped_input' => substr($cleanInput, 0, 200),
-        'debug_hex_input' => bin2hex(substr($rawInput, 0, 50))
+        'error' => 'Invalid JSON payload.'
     ]);
     exit;
 }
@@ -108,9 +106,10 @@ try {
         'id' => $insertId
     ]);
 } catch (PDOException $e) {
+    error_log('[BML-IOT] receive_data insert failed: ' . $e->getMessage() . ' | crane_id=' . ($data['crane_id'] ?? 'unknown') . ' | ' . date('c'));
     http_response_code(500);
     echo json_encode([
-        'error' => 'Database error: ' . $e->getMessage()
+        'error' => 'Database error. Record not saved.'
     ]);
 }
 ?>

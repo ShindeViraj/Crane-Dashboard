@@ -67,12 +67,15 @@ function getDbConnection() {
         try {
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
+            // Log the real error server-side — never expose to clients
+            error_log('[BML-IOT] DB connection failed: ' . $e->getMessage() . ' | ' . date('c'));
+
             if (php_sapi_name() !== 'cli' && strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false) {
                 http_response_code(500);
-                echo json_encode(['error' => 'Database connection failed', 'detail' => $e->getMessage()]);
+                echo json_encode(['error' => 'Database connection failed. Please try again later.']);
                 exit;
             }
-            die('<div style="padding:40px;font-family:sans-serif;color:#ba1a1a;">Database connection failed: ' . htmlspecialchars($e->getMessage()) . '</div>');
+            die('<div style="padding:40px;font-family:sans-serif;color:#ba1a1a;">Database connection failed. Please contact the system administrator.</div>');
         }
     }
     

@@ -176,7 +176,8 @@ function assignCraneToUser($userId, $craneId) {
         $stmt->execute([':uid' => $userId, ':cid' => $craneId]);
         return ['success' => true, 'message' => 'Crane assigned successfully.'];
     } catch (PDOException $e) {
-        return ['success' => false, 'error' => 'Failed to assign crane: ' . $e->getMessage()];
+        error_log('[BML-IOT] assignCraneToUser failed: ' . $e->getMessage() . ' | user=' . $userId . ' crane=' . $craneId . ' | ' . date('c'));
+        return ['success' => false, 'error' => 'Failed to assign crane. Please try again.'];
     }
 }
 

@@ -108,9 +108,8 @@ try {
             $insertedCount++;
         } catch (PDOException $e) {
             $errorCount++;
-            if (count($errors) < 10) { // Limit error details
-                $errors[] = "Record " . ($index + 1) . ": " . $e->getMessage();
-            }
+            // Log per-record errors server-side only
+            error_log('[BML-IOT] bulk_insert record ' . ($index + 1) . ' failed: ' . $e->getMessage() . ' | ' . date('c'));
         }
     }
     
@@ -122,17 +121,17 @@ try {
         'message' => "Bulk insert completed.",
         'total_received' => count($records),
         'inserted' => $insertedCount,
-        'errors' => $errorCount,
-        'error_details' => $errors
+        'errors' => $errorCount
     ]);
     
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    error_log('[BML-IOT] bulk_insert transaction failed: ' . $e->getMessage() . ' | ' . date('c'));
     http_response_code(500);
     echo json_encode([
-        'error' => 'Database error: ' . $e->getMessage()
+        'error' => 'Database error. Bulk insert failed.'
     ]);
 }
 ?>
