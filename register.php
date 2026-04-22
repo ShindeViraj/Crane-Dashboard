@@ -14,20 +14,25 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $displayName = trim($_POST['display_name'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-    
-    if ($password !== $confirmPassword) {
-        $error = 'Passwords do not match.';
+    // CSRF check — fail closed
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Session expired. Please refresh the page and try again.';
     } else {
-        $result = registerUser($username, $email, $password, $displayName);
-        if ($result['success']) {
-            $success = $result['message'];
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $displayName = trim($_POST['display_name'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        
+        if ($password !== $confirmPassword) {
+            $error = 'Passwords do not match.';
         } else {
-            $error = $result['error'];
+            $result = registerUser($username, $email, $password, $displayName);
+            if ($result['success']) {
+                $success = $result['message'];
+            } else {
+                $error = $result['error'];
+            }
         }
     }
 }
@@ -222,6 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <?php if (!$success): ?>
             <form method="POST" action="register.php" id="register-form">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                 <div class="row g-2">
                     <div class="col-md-6 mb-2">
                         <label class="form-label-custom" for="username">Username *</label>

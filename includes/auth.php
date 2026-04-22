@@ -237,8 +237,9 @@ function attemptLogin($username, $password) {
             $_SESSION['role'] = $user['role'];
             $_SESSION['login_time'] = time();
             
-            // Regenerate session ID for security
+            // Regenerate session ID for security and rotate CSRF token
             session_regenerate_id(true);
+            unset($_SESSION['csrf_token']); // discard pre-auth token — new one generated on next form load
             
             return ['success' => true, 'user' => $user];
         }
@@ -253,6 +254,8 @@ function attemptLogin($username, $password) {
  * Logout — destroy session
  */
 function logout() {
+    // Explicitly clear CSRF token before wiping the session
+    unset($_SESSION['csrf_token']);
     $_SESSION = [];
     
     if (ini_get("session.use_cookies")) {

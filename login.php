@@ -13,18 +13,23 @@ if (isLoggedIn()) {
 // Handle login form submission
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    
-    if (empty($username) || empty($password)) {
-        $error = 'Please enter both username and password.';
+    // CSRF check — fail closed
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Session expired. Please refresh the page and try again.';
     } else {
-        $result = attemptLogin($username, $password);
-        if ($result['success']) {
-            header('Location: dashboard.php');
-            exit;
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        
+        if (empty($username) || empty($password)) {
+            $error = 'Please enter both username and password.';
         } else {
-            $error = $result['error'];
+            $result = attemptLogin($username, $password);
+            if ($result['success']) {
+                header('Location: dashboard.php');
+                exit;
+            } else {
+                $error = $result['error'];
+            }
         }
     }
 }
@@ -187,6 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
             
             <form method="POST" action="login.php" id="login-form">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                 <div class="mb-3">
                     <label class="form-label-custom" for="username">Username or Email</label>
                     <input type="text" class="form-control form-input-custom" id="username" name="username" 
