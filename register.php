@@ -42,8 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SquareWave VFD Dashboard - Create Account">
-    <title>Sign Up — SquareWave VFD Dashboard</title>
+    <meta name="description" content="Bajaj Mukand VFD Dashboard - Create Account">
+    <title>Sign Up — Bajaj Mukand VFD Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -202,9 +202,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="register-card">
             <div class="register-logo">
                 <div class="register-logo-icon">
-                    <img src="assets/logo.png" alt="SquareWave">
+                    <img src="assets/logo.png" alt="Bajaj Mukand">
                 </div>
-                <h1>SQUAREWAVE</h1>
+                <h1>BAJAJ MUKAND</h1>
                 <p>VFD Monitoring System</p>
             </div>
             

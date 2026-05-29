@@ -24,5 +24,5 @@ CREATE TABLE IF NOT EXISTS user_cranes (
 
 -- Step 4: Seed developer account (password: dev123 — CHANGE IMMEDIATELY)
 INSERT INTO users (username, email, password_hash, display_name, role) VALUES
-('developer', 'dev@squarewave.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Developer', 'developer')
+('developer', 'dev@bajajmukand.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Developer', 'developer')
 ON DUPLICATE KEY UPDATE role='developer';

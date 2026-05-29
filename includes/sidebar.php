@@ -3,11 +3,11 @@
     <!-- Logo Area -->
     <div class="sidebar-logo">
         <div class="logo-img-wrap">
-            <img src="assets/logo.png" alt="SquareWave Logo" class="sidebar-logo-img">
+            <img src="assets/logo.png" alt="Bajaj Mukand Logo" class="sidebar-logo-img">
         </div>
         <div class="logo-text">
-            <span class="logo-brand">SQUAREWAVE</span>
-            <span class="logo-sub">AUTOMATION TECHNOLOGIES PVT. LTD.</span>
+            <span class="logo-brand">BAJAJ MUKAND</span>
+            <span class="logo-sub">LIMITED</span>
         </div>
     </div>
     

@@ -18,12 +18,12 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Default admin user (password: admin123)
 INSERT INTO users (username, email, password_hash, display_name, role) VALUES
-('admin', 'admin@squarewave.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', 'admin')
+('admin', 'admin@bajajmukand.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', 'admin')
 ON DUPLICATE KEY UPDATE id=id;
 
 -- Default developer user (password: dev123 — CHANGE IMMEDIATELY)
 INSERT INTO users (username, email, password_hash, display_name, role) VALUES
-('developer', 'dev@squarewave.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Developer', 'developer')
+('developer', 'dev@bajajmukand.in', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Developer', 'developer')
 ON DUPLICATE KEY UPDATE id=id;
 
 -- ============================================

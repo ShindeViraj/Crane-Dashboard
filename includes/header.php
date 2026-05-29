@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Bajaj Mukund Limited VFD Monitoring Dashboard - Industrial IoT Crane Monitoring System">
-    <title><?php echo isset($pageTitle) ? $pageTitle . ' — ' : ''; ?>Bajaj Mukund Limited VFD Dashboard</title>
+    <meta name="description" content="Bajaj Mukand VFD Monitoring Dashboard - Industrial IoT Crane Monitoring System">
+    <title><?php echo isset($pageTitle) ? $pageTitle . ' — ' : ''; ?>Bajaj Mukand VFD Dashboard</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

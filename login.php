@@ -46,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SquareWave VFD Dashboard - Login">
-    <title>Log In — SquareWave VFD Dashboard</title>
+    <meta name="description" content="Bajaj Mukand VFD Dashboard - Login">
+    <title>Log In — Bajaj Mukand VFD Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -183,9 +183,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-card">
             <div class="login-logo">
                 <div class="login-logo-icon" style="overflow:hidden;">
-                    <img src="assets/logo.png" alt="SquareWave" style="width:48px;height:48px;object-fit:contain;">
+                    <img src="assets/logo.png" alt="Bajaj Mukand" style="width:48px;height:48px;object-fit:contain;">
                 </div>
-                <h1>SQUAREWAVE</h1>
+                <h1>BAJAJ MUKAND</h1>
                 <p>VFD Monitoring System</p>
             </div>
             
@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="login-footer">
                 Don't have an account? <a href="register.php" style="color:#002147;font-weight:600;text-decoration:none;">Sign up</a>
-                <br><span style="margin-top:8px;display:inline-block;">SquareWave IoT Dashboard &copy; <?php echo date('Y'); ?></span>
+                <br><span style="margin-top:8px;display:inline-block;">Bajaj Mukand IoT Dashboard &copy; <?php echo date('Y'); ?></span>
             </div>
         </div>
     </div>
