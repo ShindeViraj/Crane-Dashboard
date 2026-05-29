@@ -3,9 +3,12 @@
  * API Endpoint: Receive Data from Node-RED
  * 
  * Accepts POST/PUT with JSON body containing VFD parameters.
- * Inserts a single record into crane_data table.
+ * Uses a hybrid file-buffered ingestion pipeline:
+ *   1. Writes live state to cache/live_state_<crane_id>.json (instant, no DB)
+ *   2. Downsamples: buffers every 2nd entry into cache/buffer_<crane_id>.json
+ *   3. When buffer reaches 10 entries, flushes all to MySQL in a single transaction
  * 
- * Node-RED HTTP Request node should point to this URL.
+ * This reduces database connections by >90%, keeping within hosting limits.
  */
 
 header('Content-Type: application/json');
@@ -27,6 +30,14 @@ if (!in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT'])) {
 }
 
 require_once __DIR__ . '/../db/config.php';
+
+// ── Configurable Buffer Settings ──────────────────────────────────
+// DOWNSAMPLE_RATE: Save every N-th entry to the buffer (2 = every 2nd second)
+define('DOWNSAMPLE_RATE', 2);
+// BUFFER_FLUSH_SIZE: Number of buffered entries before flushing to MySQL
+define('BUFFER_FLUSH_SIZE', 10);
+// CACHE_DIR: Directory for runtime cache files
+define('CACHE_DIR', __DIR__ . '/../cache');
 
 // ── Phase 5: Payload Size Limit (32 KB max for single records) ────
 $rawInput = file_get_contents('php://input');
@@ -155,50 +166,155 @@ if (isset($data['Timestamp'])) {
     }
 }
 
-// Build insert data — only include columns that exist in the payload
-$insertCols = [];
-$insertPlaceholders = [];
-$insertValues = [];
+// ═══════════════════════════════════════════════════════════════════
+// HYBRID FILE-BUFFERED INGESTION PIPELINE
+// ═══════════════════════════════════════════════════════════════════
 
-foreach ($columns as $col) {
-    if (array_key_exists($col, $data)) {
-        $insertCols[] = $col;
-        $insertPlaceholders[] = ':' . $col;
-        $insertValues[':' . $col] = $data[$col];
-    }
+// Ensure cache directory exists
+if (!is_dir(CACHE_DIR)) {
+    @mkdir(CACHE_DIR, 0755, true);
 }
 
-if (empty($insertCols)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'No valid columns found in payload.']);
-    exit;
-}
+$craneIdVal = isset($data['crane_id']) ? $data['crane_id'] : '1';
+$tsVal = isset($data['Timestamp']) ? $data['Timestamp'] : date('Y-m-d H:i:s');
 
-try {
-    $pdo = getDbConnection();
-    $sql = "INSERT INTO crane_data (" . implode(', ', $insertCols) . ") VALUES (" . implode(', ', $insertPlaceholders) . ")";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($insertValues);
-    
-    $insertId = $pdo->lastInsertId();
-    
-    // Update crane status to online
-    $craneIdVal = isset($data['crane_id']) ? $data['crane_id'] : '1';
-    $tsVal = isset($data['Timestamp']) ? $data['Timestamp'] : date('Y-m-d H:i:s');
-    $updateStmt = $pdo->prepare("UPDATE cranes SET status = 'online', last_data_at = :ts WHERE crane_id = :cid");
-    $updateStmt->execute([':ts' => $tsVal, ':cid' => $craneIdVal]);
-    
+// ── Step 1: Write Live State (every request, no DB) ──────────────
+// This file is read by get_latest.php for real-time dashboard display.
+$liveStateFile = CACHE_DIR . '/live_state_' . $craneIdVal . '.json';
+$livePayload = [
+    '_cached_at' => time(),
+    '_timestamp_ist' => $tsVal,
+    'data' => $data
+];
+file_put_contents($liveStateFile, json_encode($livePayload), LOCK_EX);
+
+// ── Step 2: Downsample Counter ───────────────────────────────────
+// Only buffer every N-th entry for database storage.
+$counterFile = CACHE_DIR . '/counter_' . $craneIdVal . '.txt';
+$counter = file_exists($counterFile) ? (int)file_get_contents($counterFile) : 0;
+$counter++;
+file_put_contents($counterFile, (string)$counter, LOCK_EX);
+
+$shouldBuffer = ($counter % DOWNSAMPLE_RATE === 0);
+
+if (!$shouldBuffer) {
+    // Skip database buffering for this entry — live state is already updated
     http_response_code(201);
     echo json_encode([
         'success' => true,
-        'message' => 'Data inserted successfully.',
-        'id' => $insertId
+        'message' => 'Live state updated. Entry skipped by downsampler (sample ' . $counter . ').',
+        'buffered' => false
     ]);
-} catch (PDOException $e) {
-    error_log('[BML-IOT] receive_data insert failed: ' . $e->getMessage() . ' | crane_id=' . ($data['crane_id'] ?? 'unknown') . ' | ' . date('c'));
+    exit;
+}
+
+// ── Step 3: Append to Buffer File ────────────────────────────────
+$bufferFile = CACHE_DIR . '/buffer_' . $craneIdVal . '.json';
+
+// Read existing buffer (with file lock for concurrency safety)
+$bufferHandle = fopen($bufferFile, 'c+');
+if (!$bufferHandle) {
     http_response_code(500);
+    echo json_encode(['error' => 'Cannot open buffer file.']);
+    exit;
+}
+flock($bufferHandle, LOCK_EX);
+
+$bufferRaw = '';
+while (!feof($bufferHandle)) {
+    $bufferRaw .= fread($bufferHandle, 8192);
+}
+$buffer = !empty($bufferRaw) ? json_decode($bufferRaw, true) : [];
+if (!is_array($buffer)) {
+    $buffer = [];
+}
+
+// Build the row to buffer (only columns present in payload)
+$row = [];
+foreach ($columns as $col) {
+    if (array_key_exists($col, $data)) {
+        $row[$col] = $data[$col];
+    }
+}
+$buffer[] = $row;
+
+// ── Step 4: Check if Buffer is Full → Flush to MySQL ─────────────
+if (count($buffer) >= BUFFER_FLUSH_SIZE) {
+    // Flush all buffered entries to MySQL in a single transaction
+    try {
+        $pdo = getDbConnection();
+        $pdo->beginTransaction();
+
+        foreach ($buffer as $entry) {
+            $insertCols = [];
+            $insertPlaceholders = [];
+            $insertValues = [];
+            foreach ($columns as $col) {
+                if (array_key_exists($col, $entry)) {
+                    $insertCols[] = $col;
+                    $insertPlaceholders[] = ':' . $col;
+                    $insertValues[':' . $col] = $entry[$col];
+                }
+            }
+            if (!empty($insertCols)) {
+                $sql = "INSERT INTO crane_data (" . implode(', ', $insertCols) . ") VALUES (" . implode(', ', $insertPlaceholders) . ")";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($insertValues);
+            }
+        }
+
+        // Update crane status to online (using the latest entry's timestamp)
+        $updateStmt = $pdo->prepare("UPDATE cranes SET status = 'online', last_data_at = :ts WHERE crane_id = :cid");
+        $updateStmt->execute([':ts' => $tsVal, ':cid' => $craneIdVal]);
+
+        $pdo->commit();
+
+        // Clear the buffer file
+        ftruncate($bufferHandle, 0);
+        rewind($bufferHandle);
+        flock($bufferHandle, LOCK_UN);
+        fclose($bufferHandle);
+
+        // Reset counter
+        file_put_contents($counterFile, '0', LOCK_EX);
+
+        http_response_code(201);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Buffer flushed. ' . count($buffer) . ' records inserted into database.',
+            'buffered' => false,
+            'flushed' => count($buffer)
+        ]);
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[BML-IOT] Buffer flush failed: ' . $e->getMessage() . ' | crane_id=' . $craneIdVal . ' | ' . date('c'));
+
+        // Keep the buffer intact so we can retry on the next request
+        ftruncate($bufferHandle, 0);
+        rewind($bufferHandle);
+        fwrite($bufferHandle, json_encode($buffer));
+        flock($bufferHandle, LOCK_UN);
+        fclose($bufferHandle);
+
+        http_response_code(500);
+        echo json_encode(['error' => 'Database flush failed. Buffer preserved for retry.']);
+    }
+} else {
+    // Buffer is not full yet — save updated buffer and return without DB connection
+    ftruncate($bufferHandle, 0);
+    rewind($bufferHandle);
+    fwrite($bufferHandle, json_encode($buffer));
+    flock($bufferHandle, LOCK_UN);
+    fclose($bufferHandle);
+
+    http_response_code(201);
     echo json_encode([
-        'error' => 'Database error. Record not saved.'
+        'success' => true,
+        'message' => 'Entry buffered (' . count($buffer) . '/' . BUFFER_FLUSH_SIZE . '). No DB connection used.',
+        'buffered' => true,
+        'buffer_count' => count($buffer)
     ]);
 }
 ?>

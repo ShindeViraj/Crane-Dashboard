@@ -1,0 +1,4 @@
+# Deny all direct HTTP access to cache files
+# These files are read/written by PHP only
+Order Deny,Allow
+Deny from all

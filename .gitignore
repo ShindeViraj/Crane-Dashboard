@@ -29,6 +29,12 @@ logs/
 tmp/
 temp/
 
+# Runtime cache files (live state + buffer)
+cache/*.json
+cache/*.txt
+!cache/.htaccess
+!cache/.gitkeep
+
 # Uploads (user-generated)
 uploads/
 

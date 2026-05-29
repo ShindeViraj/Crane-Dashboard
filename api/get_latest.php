@@ -2,8 +2,11 @@
 /**
  * API Endpoint: Get Latest Data
  * 
- * Returns the most recent crane_data record for a given crane_id.
- * Used by the dashboard for AJAX live data polling.
+ * Returns the most recent crane_data for a given crane_id.
+ * Uses a hybrid file-cache strategy:
+ *   1. First, check cache/live_state_<crane_id>.json (written by receive_data.php)
+ *   2. If the cache is fresh (< 15 seconds old), return it immediately — NO database hit
+ *   3. If stale or missing, fall back to querying MySQL (backwards compatible)
  * 
  * GET ?crane_id=1
  */
@@ -25,8 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-require_once __DIR__ . '/../db/config.php';
-
 // Strict crane_id validation: alphanumeric, dash, underscore (max 20 chars)
 $craneId = isset($_GET['crane_id']) ? trim($_GET['crane_id']) : '1';
 if (!preg_match('/^[a-zA-Z0-9_\-]{1,20}$/', $craneId)) {
@@ -34,6 +35,39 @@ if (!preg_match('/^[a-zA-Z0-9_\-]{1,20}$/', $craneId)) {
     echo json_encode(['error' => 'Invalid crane_id parameter.']);
     exit;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// STEP 1: Try file cache first (zero database connections)
+// ═══════════════════════════════════════════════════════════════════
+$cacheDir = __DIR__ . '/../cache';
+$liveStateFile = $cacheDir . '/live_state_' . $craneId . '.json';
+$cacheMaxAge = 15; // seconds — if older than this, treat as stale
+
+if (file_exists($liveStateFile)) {
+    $cacheRaw = file_get_contents($liveStateFile);
+    $cacheData = json_decode($cacheRaw, true);
+
+    if ($cacheData && isset($cacheData['_cached_at']) && isset($cacheData['data'])) {
+        $cacheAge = time() - (int)$cacheData['_cached_at'];
+
+        if ($cacheAge <= $cacheMaxAge) {
+            // Cache is fresh — serve directly without touching the database
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'data' => $cacheData['data'],
+                'source' => 'cache',
+                'cache_age_seconds' => $cacheAge
+            ]);
+            exit;
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STEP 2: Fallback to MySQL (cache stale or missing)
+// ═══════════════════════════════════════════════════════════════════
+require_once __DIR__ . '/../db/config.php';
 
 try {
     $pdo = getDbConnection();
@@ -65,14 +99,16 @@ try {
         http_response_code(200);
         echo json_encode([
             'success' => true,
-            'data' => $row
+            'data' => $row,
+            'source' => 'database'
         ]);
     } else {
         http_response_code(200);
         echo json_encode([
             'success' => true,
             'data' => null,
-            'message' => 'No data found for crane_id ' . $craneId
+            'message' => 'No data found for crane_id ' . $craneId,
+            'source' => 'database'
         ]);
     }
 } catch (PDOException $e) {
