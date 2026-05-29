@@ -35,7 +35,7 @@ require_once __DIR__ . '/../db/config.php';
 // DOWNSAMPLE_RATE: Save every N-th entry to the buffer (2 = every 2nd second)
 define('DOWNSAMPLE_RATE', 2);
 // BUFFER_FLUSH_SIZE: Number of buffered entries before flushing to MySQL
-define('BUFFER_FLUSH_SIZE', 10);
+define('BUFFER_FLUSH_SIZE', 50);
 // CACHE_DIR: Directory for runtime cache files
 define('CACHE_DIR', __DIR__ . '/../cache');
 
