@@ -125,19 +125,31 @@ foreach ($data as $key => $val) {
     }
 }
 
-// ── Phase 5: Anti-Replay — reject timestamps > 24h old or in the future ──
+// ── Phase 5: Anti-Replay — reject timestamps > 24h old or far in the future ──
+// Node-RED sends timestamps in IST (Asia/Kolkata) WITHOUT a timezone suffix,
+// e.g. "2026-05-29 11:56:00". The Hostinger server's time() returns UTC epoch.
+// If we naively strtotime() that string, PHP treats it as UTC — placing it
+// 5.5 hours in the future relative to the real UTC time. Fix: parse as IST.
 if (isset($data['Timestamp'])) {
-    $ts = strtotime($data['Timestamp']);
+    try {
+        $ist = new DateTimeZone('Asia/Kolkata');
+        $utc = new DateTimeZone('UTC');
+        // Parse the timestamp assuming it was generated in IST
+        $dt = new DateTime($data['Timestamp'], $ist);
+        $ts = $dt->getTimestamp(); // now in UTC epoch seconds
+    } catch (Exception $e) {
+        $ts = false;
+    }
     if ($ts !== false) {
-        $now = time();
+        $now = time(); // UTC epoch on server
         if ($ts < ($now - 86400)) {
             http_response_code(400);
             echo json_encode(['error' => 'Timestamp too old. Data must be less than 24 hours old.']);
             exit;
         }
-        if ($ts > ($now + 300)) { // 5 min future tolerance for clock skew
+        if ($ts > ($now + 600)) { // 10 min future tolerance
             http_response_code(400);
-            echo json_encode(['error' => 'Timestamp is in the future.']);
+            echo json_encode(['error' => 'Timestamp is in the future. Server UTC: ' . gmdate('Y-m-d H:i:s', $now) . ', parsed UTC: ' . gmdate('Y-m-d H:i:s', $ts)]);
             exit;
         }
     }
