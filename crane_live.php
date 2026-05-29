@@ -292,7 +292,7 @@ function loadHistoryChart() {
 
 pollCraneLive();
 loadHistoryChart();
-setInterval(pollCraneLive, 3000);
+setInterval(pollCraneLive, 500);
 </script>
 
 <?php require_once 'includes/footer.php'; ?>

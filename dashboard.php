@@ -283,7 +283,7 @@ function updateDashboardOverview() {
 }
 
 updateDashboardOverview();
-setInterval(updateDashboardOverview, 3000);
+setInterval(updateDashboardOverview, 500);
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
