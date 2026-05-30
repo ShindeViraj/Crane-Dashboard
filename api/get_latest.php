@@ -95,7 +95,13 @@ try {
     $stmt->execute([':crane_id' => $craneId]);
     $row = $stmt->fetch();
 
+    $cachePayload = null;
+
     if ($row) {
+        $cachePayload = [
+            '_cached_at' => time(),
+            'data' => $row
+        ];
         http_response_code(200);
         echo json_encode([
             'success' => true,
@@ -103,6 +109,11 @@ try {
             'source' => 'database'
         ]);
     } else {
+        // Even if no data, write an empty payload to stop DB hammering
+        $cachePayload = [
+            '_cached_at' => time(),
+            'data' => null
+        ];
         http_response_code(200);
         echo json_encode([
             'success' => true,
@@ -110,6 +121,14 @@ try {
             'message' => 'No data found for crane_id ' . $craneId,
             'source' => 'database'
         ]);
+    }
+
+    // Write fallback data to cache so next 500ms poll doesn't hit MySQL
+    if ($cachePayload) {
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        file_put_contents($liveStateFile, json_encode($cachePayload), LOCK_EX);
     }
 } catch (PDOException $e) {
     error_log('[BML-IOT] get_latest query failed: ' . $e->getMessage() . ' | crane_id=' . $craneId . ' | ' . date('c'));
