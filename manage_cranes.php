@@ -46,16 +46,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } elseif ($action === 'edit') {
             $id = intval($_POST['id'] ?? 0);
+            $newCraneId = trim($_POST['crane_id'] ?? '');
             $name = trim($_POST['name'] ?? '');
             $location = trim($_POST['location'] ?? '');
             $capacity = trim($_POST['capacity'] ?? '');
             $description = trim($_POST['description'] ?? '');
             
-            if ($id && $name) {
-                $stmt = $pdo->prepare("UPDATE cranes SET name = :name, capacity = :cap, location = :loc, description = :desc WHERE id = :id");
-                $stmt->execute([':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':id' => $id]);
-                $message = "Crane updated successfully!";
-                $msgType = 'success';
+            if ($id && $name && $newCraneId) {
+                try {
+                    $pdo->beginTransaction();
+                    
+                    // Get old crane_id
+                    $stmt = $pdo->prepare("SELECT crane_id FROM cranes WHERE id = :id");
+                    $stmt->execute([':id' => $id]);
+                    $oldCraneId = $stmt->fetchColumn();
+                    
+                    if ($oldCraneId !== $newCraneId) {
+                        // Check if new crane_id exists
+                        $stmt = $pdo->prepare("SELECT id FROM cranes WHERE crane_id = :cid");
+                        $stmt->execute([':cid' => $newCraneId]);
+                        if ($stmt->fetch()) {
+                            throw new Exception("New Crane ID '$newCraneId' already exists.");
+                        }
+                        
+                        // Temporarily disable FK checks to allow update
+                        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+                        
+                        // Update cranes
+                        $stmt = $pdo->prepare("UPDATE cranes SET crane_id = :new_cid, name = :name, capacity = :cap, location = :loc, description = :desc WHERE id = :id");
+                        $stmt->execute([':new_cid' => $newCraneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':id' => $id]);
+                        
+                        // Update related tables to preserve history and assignments
+                        $stmt = $pdo->prepare("UPDATE user_cranes SET crane_id = :new_cid WHERE crane_id = :old_cid");
+                        $stmt->execute([':new_cid' => $newCraneId, ':old_cid' => $oldCraneId]);
+                        
+                        $stmt = $pdo->prepare("UPDATE crane_data SET crane_id = :new_cid WHERE crane_id = :old_cid");
+                        $stmt->execute([':new_cid' => $newCraneId, ':old_cid' => $oldCraneId]);
+                        
+                        // Re-enable FK checks
+                        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+                    } else {
+                        // No crane_id change, just update other fields
+                        $stmt = $pdo->prepare("UPDATE cranes SET name = :name, capacity = :cap, location = :loc, description = :desc WHERE id = :id");
+                        $stmt->execute([':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':id' => $id]);
+                    }
+                    
+                    $pdo->commit();
+                    $message = "Crane updated successfully!";
+                    $msgType = 'success';
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+                    }
+                    $message = $e->getMessage();
+                    if (strpos($message, 'Duplicate') !== false) {
+                        $message = "Crane ID '$newCraneId' already exists.";
+                    } elseif (strpos($message, 'already exists') === false) {
+                        $message = 'Failed to update crane. ' . $message;
+                    }
+                    $msgType = 'error';
+                }
+            } else {
+                $message = 'Crane ID and Name are required.';
+                $msgType = 'error';
             }
         } elseif ($action === 'delete') {
             $id = intval($_POST['id'] ?? 0);
@@ -213,8 +267,8 @@ require_once 'includes/sidebar.php';
                 </div>
                 <div class="modal-body" style="padding:12px 24px 24px;">
                     <div class="mb-3">
-                        <label class="settings-label">Crane ID</label>
-                        <input type="text" class="form-control form-input-custom" id="edit-crane-id" disabled>
+                        <label class="settings-label" for="edit-crane-id">Crane ID *</label>
+                        <input type="text" class="form-control form-input-custom" id="edit-crane-id" name="crane_id" required>
                     </div>
                     <div class="mb-3">
                         <label class="settings-label" for="edit-name">Name</label>
