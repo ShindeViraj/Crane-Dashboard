@@ -34,7 +34,7 @@ require_once 'includes/sidebar.php';
 <div class="page-header">
     <h1 class="page-title"><?php echo htmlspecialchars($craneName); ?> — Live Dashboard</h1>
     <a href="drives_live.php?crane_id=<?php echo $craneId; ?>" class="btn btn-success-gradient" id="btn-drives-live">
-        <i class="bi bi-speedometer2"></i> View Drives Live Data
+        <i class="bi bi-speedometer2"></i> View Motion Live Data
     </a>
 </div>
 
@@ -71,10 +71,10 @@ require_once 'includes/sidebar.php';
         </div>
     </div>
     
-    <!-- Drive Wise Power Consumption -->
+    <!-- Motion Wise Power Consumption -->
     <div class="col-lg-4">
         <div class="data-card drive-power-card">
-            <h3 class="card-title text-uppercase">Drive Wise Power Consumption</h3>
+            <h3 class="card-title text-uppercase">Motion Wise Power Consumption</h3>
             <div class="drive-power-list">
                 <div class="drive-power-row">
                     <span class="drive-power-label">

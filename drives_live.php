@@ -10,7 +10,7 @@ if (!canAccessCrane($craneId)) {
     exit;
 }
 
-$pageTitle = 'Drives Live Data';
+$pageTitle = 'Motion Live Data';
 $pdo = getDbConnection();
 $craneInfo = $pdo->prepare("SELECT crane_id, name, location, description FROM cranes WHERE crane_id = :cid");
 $craneInfo->execute([':cid' => $craneId]);
@@ -33,14 +33,14 @@ $drives = [
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="dashboard.php"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a></li>
         <li class="breadcrumb-item"><a href="crane_live.php?crane_id=<?php echo $craneId; ?>"><?php echo htmlspecialchars($craneName); ?></a></li>
-        <li class="breadcrumb-item active">Drives Live Data</li>
+        <li class="breadcrumb-item active">Motion Live Data</li>
     </ol>
 </nav>
 
 <!-- Page Header -->
 <div class="page-header">
     <div>
-        <h1 class="page-title"><?php echo htmlspecialchars($craneName); ?> — Drives Live Data</h1>
+        <h1 class="page-title"><?php echo htmlspecialchars($craneName); ?> — Motion Live Data</h1>
         <div class="last-update-inline">
             <span class="live-dot-sm"></span>
             <span>Last updated: <strong id="drives-last-update">Waiting for data...</strong></span>
@@ -93,7 +93,7 @@ $drives = [
                     <span class="param-value param-highlight" id="<?php echo strtolower($drive['prefix']); ?>-motor-power">— <small>kW</small></span>
                 </div>
                 <div class="param-row">
-                    <span class="param-label"><i class="bi bi-thermometer-half"></i> Drive Temp</span>
+                    <span class="param-label"><i class="bi bi-thermometer-half"></i> Motion Temp</span>
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-drive-temp">— <small>°C</small></span>
                 </div>
                 <div class="param-row">

@@ -157,9 +157,9 @@ require_once 'includes/sidebar.php';
                         </select>
                     </div>
                     <div class="col-md-6 mb-2">
-                        <label class="settings-label" for="filter-drive">Drive</label>
+                        <label class="settings-label" for="filter-drive">Motion</label>
                         <select class="form-select form-input-custom py-2" id="filter-drive" name="drive">
-                            <option value="all" <?php echo $driveFilter==='all'?'selected':''; ?>>All Drives</option>
+                            <option value="all" <?php echo $driveFilter==='all'?'selected':''; ?>>All Motions</option>
                             <option value="MH" <?php echo $driveFilter==='MH'?'selected':''; ?>>Main Hoist (MH)</option>
                             <option value="CT" <?php echo $driveFilter==='CT'?'selected':''; ?>>Cross Travel (CT)</option>
                             <option value="LT" <?php echo $driveFilter==='LT'?'selected':''; ?>>Long Travel (LT)</option>
@@ -207,7 +207,7 @@ require_once 'includes/sidebar.php';
                 <div>
                     <div class="card-title-group" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <h3 class="card-title text-uppercase mb-0">
-                            Report: <?php echo $driveFilter === 'all' ? 'All Drives' : $driveFilter . ' Drive'; ?>
+                            Report: <?php echo $driveFilter === 'all' ? 'All Motions' : $driveFilter . ' Motion'; ?>
                         </h3>
                         <span class="status-chip <?php echo $totalRecords > 0 ? 'status-idle-chip' : 'status-offline'; ?>" style="font-weight:700;">
                             <?php echo number_format($totalRecords); ?> records
