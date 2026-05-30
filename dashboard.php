@@ -121,13 +121,18 @@ require_once 'includes/sidebar.php';
                     <?php if ($crane['location']): ?>
                     <span style="font-size:12px;color:#74777f;"><i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($crane['location']); ?></span>
                     <?php endif; ?>
+                    <!-- Crane detail chips: Sr No / Capacity / Name -->
+                    <span style="font-size:12px;color:#74777f;background:#f0f4ff;border-radius:6px;padding:2px 8px;"><strong>Sr No:</strong> <?php echo htmlspecialchars($crane['crane_id']); ?></span>
+                    <?php if (!empty($crane['capacity'])): ?>
+                    <span style="font-size:12px;color:#74777f;background:#f0f4ff;border-radius:6px;padding:2px 8px;"><strong>Capacity:</strong> <?php echo htmlspecialchars($crane['capacity']); ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="card-actions">
                     <a href="crane_live.php?crane_id=<?php echo urlencode($crane['crane_id']); ?>" class="btn btn-primary-gradient">
                         <i class="bi bi-display"></i> Live Dashboard
                     </a>
                     <a href="drives_live.php?crane_id=<?php echo urlencode($crane['crane_id']); ?>" class="btn btn-outline-action">
-                        <i class="bi bi-speedometer2"></i> Drives Data
+                        <i class="bi bi-speedometer2"></i> Motion Data
                     </a>
                     <a href="reports.php?crane_id=<?php echo urlencode($crane['crane_id']); ?>" class="btn btn-outline-action">
                         <i class="bi bi-file-bar-graph"></i> Reports

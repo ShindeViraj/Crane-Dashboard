@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $craneId = trim($_POST['crane_id'] ?? '');
             $name = trim($_POST['name'] ?? '');
             $location = trim($_POST['location'] ?? '');
+            $capacity = trim($_POST['capacity'] ?? '');
             $description = trim($_POST['description'] ?? '');
             
             if (empty($craneId) || empty($name)) {
@@ -30,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msgType = 'error';
             } else {
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, location, description) VALUES (:cid, :name, :loc, :desc)");
-                    $stmt->execute([':cid' => $craneId, ':name' => $name, ':loc' => $location, ':desc' => $description]);
+                    $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, capacity, location, description) VALUES (:cid, :name, :cap, :loc, :desc)");
+                    $stmt->execute([':cid' => $craneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description]);
                     $message = "Crane '$name' (ID: $craneId) added successfully!";
                     $msgType = 'success';
                 } catch (PDOException $e) {
@@ -47,11 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = intval($_POST['id'] ?? 0);
             $name = trim($_POST['name'] ?? '');
             $location = trim($_POST['location'] ?? '');
+            $capacity = trim($_POST['capacity'] ?? '');
             $description = trim($_POST['description'] ?? '');
             
             if ($id && $name) {
-                $stmt = $pdo->prepare("UPDATE cranes SET name = :name, location = :loc, description = :desc WHERE id = :id");
-                $stmt->execute([':name' => $name, ':loc' => $location, ':desc' => $description, ':id' => $id]);
+                $stmt = $pdo->prepare("UPDATE cranes SET name = :name, capacity = :cap, location = :loc, description = :desc WHERE id = :id");
+                $stmt->execute([':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':id' => $id]);
                 $message = "Crane updated successfully!";
                 $msgType = 'success';
             }
@@ -116,6 +118,11 @@ require_once 'includes/sidebar.php';
                            placeholder="e.g., Crane 1, HOT Crane A" required>
                 </div>
                 <div class="mb-3">
+                    <label class="settings-label" for="add-crane-capacity">Capacity</label>
+                    <input type="text" class="form-control form-input-custom" id="add-crane-capacity" name="capacity" 
+                           placeholder="e.g., 10 Ton, 25 MT">
+                </div>
+                <div class="mb-3">
                     <label class="settings-label" for="add-crane-location">Location</label>
                     <input type="text" class="form-control form-input-custom" id="add-crane-location" name="location" 
                            placeholder="e.g., Bay 3, SA3">
@@ -144,8 +151,9 @@ require_once 'includes/sidebar.php';
                 <table class="table table-custom" id="cranes-table">
                     <thead>
                         <tr>
-                            <th>Crane ID</th>
+                            <th>Sr No</th>
                             <th>Name</th>
+                            <th>Capacity</th>
                             <th>Location</th>
                             <th>Status</th>
                             <th style="width:120px;">Actions</th>
@@ -159,6 +167,7 @@ require_once 'includes/sidebar.php';
                         <tr>
                             <td><strong><?php echo htmlspecialchars($crane['crane_id']); ?></strong></td>
                             <td><?php echo htmlspecialchars($crane['name']); ?></td>
+                            <td><?php echo htmlspecialchars($crane['capacity'] ?: '—'); ?></td>
                             <td><?php echo htmlspecialchars($crane['location'] ?: '—'); ?></td>
                             <td>
                                 <span class="status-chip <?php echo $isOnline ? 'status-online' : 'status-idle-chip'; ?>">
@@ -212,6 +221,10 @@ require_once 'includes/sidebar.php';
                         <input type="text" class="form-control form-input-custom" id="edit-name" name="name" required>
                     </div>
                     <div class="mb-3">
+                        <label class="settings-label" for="edit-capacity">Capacity</label>
+                        <input type="text" class="form-control form-input-custom" id="edit-capacity" name="capacity" placeholder="e.g., 10 Ton, 25 MT">
+                    </div>
+                    <div class="mb-3">
                         <label class="settings-label" for="edit-location">Location</label>
                         <input type="text" class="form-control form-input-custom" id="edit-location" name="location">
                     </div>
@@ -234,6 +247,7 @@ function editCrane(crane) {
     document.getElementById('edit-id').value = crane.id;
     document.getElementById('edit-crane-id').value = crane.crane_id;
     document.getElementById('edit-name').value = crane.name;
+    document.getElementById('edit-capacity').value = crane.capacity || '';
     document.getElementById('edit-location').value = crane.location || '';
     document.getElementById('edit-description').value = crane.description || '';
     new bootstrap.Modal(document.getElementById('editCraneModal')).show();
