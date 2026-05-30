@@ -221,7 +221,7 @@ function pollDrives() {
 }
 
 pollDrives();
-setInterval(pollDrives, 3000);
+setInterval(pollDrives, 500);
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
