@@ -137,7 +137,7 @@ if ($craneId) {
         header('Content-Disposition: attachment; filename="fault_history_' . $craneId . '_' . $driveFilter . '_' . $fromDate . '_to_' . $toDate . '.csv"');
         $output = fopen('php://output', 'w');
         
-        fputcsv($output, ['Timestamp', 'Drive', 'Fault Code ID', 'Fault Description']);
+        fputcsv($output, ['Timestamp', 'Motion', 'Fault Code ID', 'Fault Description']);
         foreach ($faultEvents as $event) {
             fputcsv($output, [$event['Timestamp'], $event['Drive'], $event['Fault_Code'], $event['Description']]);
         }
@@ -180,9 +180,9 @@ if ($craneId) {
                         </select>
                     </div>
                     <div class="col-md-6 mb-2">
-                        <label class="settings-label" for="filter-drive">Drive (Optional)</label>
+                        <label class="settings-label" for="filter-drive">Motion (Optional)</label>
                         <select class="form-select form-input-custom py-2" id="filter-drive" name="drive">
-                            <option value="all" <?php echo $driveFilter==='all'?'selected':''; ?>>All Drives</option>
+                            <option value="all" <?php echo $driveFilter==='all'?'selected':''; ?>>All Motions</option>
                             <option value="MH" <?php echo $driveFilter==='MH'?'selected':''; ?>>Main Hoist (MH)</option>
                             <option value="CT" <?php echo $driveFilter==='CT'?'selected':''; ?>>Cross Travel (CT)</option>
                             <option value="LT" <?php echo $driveFilter==='LT'?'selected':''; ?>>Long Travel (LT)</option>
@@ -229,7 +229,7 @@ if ($craneId) {
                 <div>
                     <div class="card-title-group">
                         <h3 class="card-title text-uppercase mb-0">
-                            Faults: <?php echo $driveFilter === 'all' ? 'All Drives' : $driveFilter . ' Drive'; ?>
+                            Faults: <?php echo $driveFilter === 'all' ? 'All Motions' : $driveFilter . ' Motion'; ?>
                         </h3>
                         <span class="status-chip <?php echo $totalEvents > 0 ? 'status-offline' : 'status-idle-chip'; ?>" style="font-weight:700;">
                             <?php echo number_format($totalEvents); ?> faults recorded
@@ -255,7 +255,7 @@ if ($craneId) {
                     <thead style="position:sticky;top:0;z-index:1;">
                         <tr>
                             <th>DateTime</th>
-                            <th>Drive</th>
+                            <th>Motion</th>
                             <th>Raw ID</th>
                             <th>Fault Description</th>
                         </tr>
