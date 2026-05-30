@@ -58,6 +58,28 @@ if ($diffDays > 90) {
     $from = date('Y-m-d', strtotime('-90 days', $toTime));
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// File-cache layer: avoid heavy GROUP BY DATE() aggregation on every load
+// Cache is per crane+date range, expires after 5 minutes
+// ═══════════════════════════════════════════════════════════════════
+$cacheDir = __DIR__ . '/../cache';
+if (!is_dir($cacheDir)) {
+    @mkdir($cacheDir, 0777, true);
+}
+$cacheKey = 'history_' . $craneId . '_' . md5($from . $to . $limit);
+$cacheFile = $cacheDir . '/' . $cacheKey . '.json';
+$cacheTtl = 300; // 5 minutes
+
+if (file_exists($cacheFile)) {
+    $cacheAge = time() - filemtime($cacheFile);
+    if ($cacheAge < $cacheTtl) {
+        // Serve from cache — zero DB connections
+        http_response_code(200);
+        echo file_get_contents($cacheFile);
+        exit;
+    }
+}
+
 try {
     $pdo = getDbConnection();
 
@@ -87,14 +109,19 @@ try {
     $stmt->execute();
     $rows = $stmt->fetchAll();
 
-    http_response_code(200);
-    echo json_encode([
+    $response = json_encode([
         'success' => true,
         'crane_id' => $craneId,
         'from' => $from,
         'to' => $to,
         'data' => $rows
     ]);
+
+    // Write to cache for next caller
+    file_put_contents($cacheFile, $response, LOCK_EX);
+
+    http_response_code(200);
+    echo $response;
 } catch (PDOException $e) {
     error_log('[BML-IOT] get_history query failed: ' . $e->getMessage() . ' | crane_id=' . $craneId . ' | ' . date('c'));
     http_response_code(500);

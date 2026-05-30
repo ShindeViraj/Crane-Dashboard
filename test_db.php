@@ -2,6 +2,10 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Require authentication to prevent bots from burning DB connections
+require_once 'includes/auth.php';
+requireLogin();
+
 // We include config.php just to load the .env values
 require_once __DIR__ . '/db/config.php';
 
