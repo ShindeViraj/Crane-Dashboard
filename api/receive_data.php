@@ -199,7 +199,7 @@ $shouldBuffer = ($counter % DOWNSAMPLE_RATE === 0);
 
 if (!$shouldBuffer) {
     // Skip database buffering for this entry — live state is already updated
-    http_response_code(201);
+    http_response_code(200);
     echo json_encode([
         'success' => true,
         'message' => 'Live state updated. Entry skipped by downsampler (sample ' . $counter . ').',
@@ -278,7 +278,7 @@ if (count($buffer) >= BUFFER_FLUSH_SIZE) {
         // Reset counter
         file_put_contents($counterFile, '0', LOCK_EX);
 
-        http_response_code(201);
+        http_response_code(200);
         echo json_encode([
             'success' => true,
             'message' => 'Buffer flushed. ' . count($buffer) . ' records inserted into database.',
@@ -309,7 +309,7 @@ if (count($buffer) >= BUFFER_FLUSH_SIZE) {
     flock($bufferHandle, LOCK_UN);
     fclose($bufferHandle);
 
-    http_response_code(201);
+    http_response_code(200);
     echo json_encode([
         'success' => true,
         'message' => 'Entry buffered (' . count($buffer) . '/' . BUFFER_FLUSH_SIZE . '). No DB connection used.',
