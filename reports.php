@@ -51,6 +51,19 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate) || !strtotime($toDate)) {
     $toDate = date('Y-m-d');
 }
 
+// ── Phase 6: Prevent Database Exhaustion (Max 31 days range) ──────
+$fromTime = strtotime($fromDate);
+$toTime = strtotime($toDate);
+if ($fromTime > $toTime) {
+    $fromDate = $toDate;
+    $fromTime = $toTime;
+}
+$diffDays = round(($toTime - $fromTime) / (60 * 60 * 24));
+if ($diffDays > 31) {
+    // Force maximum 31 days to prevent memory/connection exhaustion
+    $fromDate = date('Y-m-d', strtotime('-31 days', $toTime));
+}
+
 // Build query based on filters
 $reportData = [];
 $totalRecords = 0;

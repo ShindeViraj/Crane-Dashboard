@@ -45,6 +45,19 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}/', $to) || !strtotime($to)) {
     $to = date('Y-m-d H:i:s');
 }
 
+// Prevent massive database scans
+$fromTime = strtotime($from);
+$toTime = strtotime($to);
+if ($fromTime > $toTime) {
+    $from = $to;
+    $fromTime = $toTime;
+}
+$diffDays = round(($toTime - $fromTime) / (60 * 60 * 24));
+if ($diffDays > 90) {
+    // Force maximum 90 days to prevent CPU exhaustion on GROUP BY DATE()
+    $from = date('Y-m-d', strtotime('-90 days', $toTime));
+}
+
 try {
     $pdo = getDbConnection();
 
