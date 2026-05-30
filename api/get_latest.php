@@ -50,17 +50,17 @@ if (file_exists($liveStateFile)) {
     if ($cacheData && isset($cacheData['_cached_at']) && isset($cacheData['data'])) {
         $cacheAge = time() - (int)$cacheData['_cached_at'];
 
-        if ($cacheAge <= $cacheMaxAge) {
-            // Cache is fresh — serve directly without touching the database
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'data' => $cacheData['data'],
-                'source' => 'cache',
-                'cache_age_seconds' => $cacheAge
-            ]);
-            exit;
-        }
+        // Cache exists — serve directly without touching the database
+        // We do this REGARDLESS of age, because if Node-RED stops sending data,
+        // the cache is still the most up-to-date source of truth.
+        http_response_code(200);
+        echo json_encode([
+            'success' => true,
+            'data' => $cacheData['data'],
+            'source' => 'cache',
+            'cache_age_seconds' => $cacheAge
+        ]);
+        exit;
     }
 }
 
