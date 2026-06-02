@@ -221,24 +221,26 @@ function updateDashboardOverview() {
     let totalFaults = 0;
     let onlineCount = 0;
     
-    CRANE_IDS.forEach(craneId => {
-        fetch('api/get_latest.php?crane_id=' + encodeURIComponent(craneId))
+    // We use Promise.all to wait for all fetches to complete before updating totals, avoiding UI flickering
+    Promise.all(CRANE_IDS.map(craneId => {
+        return fetch('api/get_latest.php?crane_id=' + encodeURIComponent(craneId))
             .then(r => r.json())
             .then(res => {
                 if (!res.success || !res.data) return;
                 const data = res.data;
                 
-                // Check online status (50s timeout)
-                const dataTime = new Date(data.Timestamp).getTime();
-                const now = Date.now();
-                const isOnline = (now - dataTime) < OFFLINE_TIMEOUT;
+                // Use the precise seconds_ago from the backend
+                const isOnline = (res.seconds_ago !== undefined && res.seconds_ago < OFFLINE_TIMEOUT / 1000);
                 
                 const statusEl = document.getElementById('crane-status-' + craneId);
                 if (statusEl) {
                     statusEl.className = 'status-chip ' + (isOnline ? 'status-online' : 'status-idle-chip');
                     statusEl.querySelector('.crane-status-text').textContent = isOnline ? 'Online' : 'Offline';
                 }
-                if (isOnline) onlineCount++;
+                
+                if (isOnline) {
+                    onlineCount++;
+                }
                 
                 // Drive mini stats
                 ['mh','ct','lt','ah'].forEach((d, i) => {
@@ -262,28 +264,30 @@ function updateDashboardOverview() {
                     }
                 });
                 
-                // Power & Faults
-                const calcP = (v, c) => (parseFloat(data[v])||0) * (parseFloat(data[c])||0) * 1.732 / 1000;
-                const p = calcP('MH_Motor_voltage', 'MH_Motor_current') + 
-                          calcP('CT_Motor_voltage', 'CT_Motor_current') +
-                          calcP('LT_Motor_voltage', 'LT_Motor_current') + 
-                          calcP('AH_Motor_voltage', 'AH_Motor_current');
-                totalPower += p;
-                
-                ['MH','CT','LT','AH'].forEach(d => {
-                    if (parseInt(data[d+'_Altivar_fault_code']) > 0) totalFaults++;
-                });
-                
                 // Timestamp
                 const updateEl = document.getElementById(craneId + '-last-update');
                 if (updateEl) updateEl.textContent = data.Timestamp || '—';
                 
-                // Update summaries
-                document.getElementById('dash-total-power').textContent = totalPower.toFixed(1);
-                document.getElementById('dash-faults').textContent = totalFaults;
-                document.getElementById('online-cranes').textContent = onlineCount;
+                // Only add to Dashboard Totals if crane is actually online!
+                if (isOnline) {
+                    const calcP = (v, c) => (parseFloat(data[v])||0) * (parseFloat(data[c])||0) * 1.732 / 1000;
+                    const p = calcP('MH_Motor_voltage', 'MH_Motor_current') + 
+                              calcP('CT_Motor_voltage', 'CT_Motor_current') +
+                              calcP('LT_Motor_voltage', 'LT_Motor_current') + 
+                              calcP('AH_Motor_voltage', 'AH_Motor_current');
+                    totalPower += p;
+                    
+                    ['MH','CT','LT','AH'].forEach(d => {
+                        if (parseInt(data[d+'_Altivar_fault_code']) > 0) totalFaults++;
+                    });
+                }
             })
             .catch(() => {});
+    })).then(() => {
+        // Update summaries ONCE after all fetches complete to avoid flickering
+        document.getElementById('dash-total-power').textContent = totalPower.toFixed(1);
+        document.getElementById('dash-faults').textContent = totalFaults;
+        document.getElementById('online-cranes').textContent = onlineCount;
     });
 }
 

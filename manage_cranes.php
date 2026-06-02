@@ -153,7 +153,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch all cranes with dynamic online status timestamp
-$cranes = $pdo->query("SELECT c.*, (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at FROM cranes c ORDER BY c.crane_id ASC")->fetchAll();
+$cranes = $pdo->query("SELECT c.*, 
+    (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at,
+    (SELECT TIMESTAMPDIFF(SECOND, MAX(cd.Timestamp), NOW()) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as seconds_ago
+    FROM cranes c ORDER BY c.crane_id ASC")->fetchAll();
 
 // Prepare the divider parameter labels for the UI grid
 $paramLabels = [
@@ -301,8 +304,10 @@ require_once 'includes/sidebar.php';
                     </thead>
                     <tbody>
                         <?php foreach ($cranes as $crane): 
-                            $lastData = $crane['last_data_at'] ? strtotime($crane['last_data_at']) : 0;
-                            $isOnline = (time() - $lastData) < 50;
+                            $isOnline = false;
+                            if (is_numeric($crane['seconds_ago']) && $crane['seconds_ago'] >= 0 && $crane['seconds_ago'] < 50) {
+                                $isOnline = true;
+                            }
                         ?>
                         <tr>
                             <td><strong><?php echo htmlspecialchars($crane['crane_id']); ?></strong></td>
