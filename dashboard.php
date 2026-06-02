@@ -106,7 +106,7 @@ require_once 'includes/sidebar.php';
 <div class="row g-4 mb-4">
 <?php foreach ($cranes as $crane): 
     $lastData = $crane['last_data_at'] ? strtotime($crane['last_data_at']) : 0;
-    $isOnline = (time() - $lastData) < 50;
+    $isOnline = $lastData > 0 && (time() - $lastData) < 120;
 ?>
     <div class="col-lg-12">
         <div class="data-card crane-overview-card" data-crane-id="<?php echo htmlspecialchars($crane['crane_id']); ?>">
@@ -214,77 +214,90 @@ require_once 'includes/sidebar.php';
 
 <script>
 const CRANE_IDS = <?php echo json_encode(array_column($cranes, 'crane_id')); ?>;
-const OFFLINE_TIMEOUT = 50000; // 50 seconds in ms
+const OFFLINE_TIMEOUT = 120000; // 120 seconds in ms
 
 function updateDashboardOverview() {
-    let totalPower = 0;
-    let totalFaults = 0;
-    let onlineCount = 0;
-    
-    // We use Promise.all to wait for all fetches to complete before updating totals, avoiding UI flickering
-    Promise.all(CRANE_IDS.map(craneId => {
-        return fetch('api/get_latest.php?crane_id=' + encodeURIComponent(craneId))
+    // Fetch all cranes in parallel, then aggregate once all complete
+    const promises = CRANE_IDS.map(craneId =>
+        fetch('api/get_latest.php?crane_id=' + encodeURIComponent(craneId))
             .then(r => r.json())
-            .then(res => {
-                if (!res.success || !res.data) return;
-                const data = res.data;
-                
-                // Use the precise seconds_ago from the backend
-                const isOnline = (res.seconds_ago !== undefined && res.seconds_ago < OFFLINE_TIMEOUT / 1000);
-                
+            .then(res => ({ craneId, res }))
+            .catch(() => ({ craneId, res: null }))
+    );
+
+    Promise.all(promises).then(results => {
+        let totalPower = 0;
+        let totalFaults = 0;
+        let onlineCount = 0;
+
+        results.forEach(({ craneId, res }) => {
+            if (!res || !res.success || !res.data) {
+                // No data — mark crane as offline
                 const statusEl = document.getElementById('crane-status-' + craneId);
                 if (statusEl) {
-                    statusEl.className = 'status-chip ' + (isOnline ? 'status-online' : 'status-idle-chip');
-                    statusEl.querySelector('.crane-status-text').textContent = isOnline ? 'Online' : 'Offline';
+                    statusEl.className = 'status-chip status-idle-chip';
+                    const txt = statusEl.querySelector('.crane-status-text');
+                    if (txt) txt.textContent = 'Offline';
                 }
-                
-                if (isOnline) {
-                    onlineCount++;
+                return;
+            }
+
+            const data = res.data;
+
+            // Check online status
+            const dataTime = new Date(data.Timestamp).getTime();
+            const now = Date.now();
+            const isOnline = dataTime > 0 && (now - dataTime) < OFFLINE_TIMEOUT;
+
+            const statusEl = document.getElementById('crane-status-' + craneId);
+            if (statusEl) {
+                statusEl.className = 'status-chip ' + (isOnline ? 'status-online' : 'status-idle-chip');
+                const txt = statusEl.querySelector('.crane-status-text');
+                if (txt) txt.textContent = isOnline ? 'Online' : 'Offline';
+            }
+            if (isOnline) onlineCount++;
+
+            // Drive mini stats
+            ['mh','ct','lt','ah'].forEach((d, i) => {
+                const p = ['MH','CT','LT','AH'][i];
+                const prefix = craneId + '-' + d;
+                const el = (id) => document.getElementById(prefix + '-' + id);
+                if (el('freq')) el('freq').textContent = (data[p+'_Output_frequency'] || '—') + ' Hz';
+                if (el('current')) el('current').textContent = (data[p+'_Motor_current'] || '—') + ' A';
+
+                const volt = parseFloat(data[p+'_Motor_voltage']) || 0;
+                const curr = parseFloat(data[p+'_Motor_current']) || 0;
+                const drivePower = (volt * curr * 1.732 / 1000);
+
+                if (el('power')) el('power').textContent = drivePower.toFixed(2) + ' kW';
+                if (el('temp')) el('temp').textContent = (data[p+'_Drive_temp'] || '—') + ' °C';
+
+                const statusDot = el('status-dot');
+                if (statusDot) {
+                    const s = parseInt(data[p+'_Drive_status']) || 0;
+                    statusDot.className = 'drive-mini-status ' + (s > 0 ? 'status-running' : 'status-idle');
                 }
-                
-                // Drive mini stats
-                ['mh','ct','lt','ah'].forEach((d, i) => {
-                    const p = ['MH','CT','LT','AH'][i];
-                    const prefix = craneId + '-' + d;
-                    const el = (id) => document.getElementById(prefix + '-' + id);
-                    if (el('freq')) el('freq').textContent = (data[p+'_Output_frequency'] || '—') + ' Hz';
-                    if (el('current')) el('current').textContent = (data[p+'_Motor_current'] || '—') + ' A';
-                    
-                    const volt = parseFloat(data[p+'_Motor_voltage']) || 0;
-                    const curr = parseFloat(data[p+'_Motor_current']) || 0;
-                    const drivePower = (volt * curr * 1.732 / 1000);
-                    
-                    if (el('power')) el('power').textContent = drivePower.toFixed(2) + ' kW';
-                    if (el('temp')) el('temp').textContent = (data[p+'_Drive_temp'] || '—') + ' °C';
-                    
-                    const statusDot = el('status-dot');
-                    if (statusDot) {
-                        const s = parseInt(data[p+'_Drive_status']) || 0;
-                        statusDot.className = 'drive-mini-status ' + (s > 0 ? 'status-running' : 'status-idle');
-                    }
-                });
-                
-                // Timestamp
-                const updateEl = document.getElementById(craneId + '-last-update');
-                if (updateEl) updateEl.textContent = data.Timestamp || '—';
-                
-                // Only add to Dashboard Totals if crane is actually online!
-                if (isOnline) {
-                    const calcP = (v, c) => (parseFloat(data[v])||0) * (parseFloat(data[c])||0) * 1.732 / 1000;
-                    const p = calcP('MH_Motor_voltage', 'MH_Motor_current') + 
+            });
+
+            // Power & Faults — only count if online
+            if (isOnline) {
+                const calcP = (v, c) => (parseFloat(data[v])||0) * (parseFloat(data[c])||0) * 1.732 / 1000;
+                totalPower += calcP('MH_Motor_voltage', 'MH_Motor_current') + 
                               calcP('CT_Motor_voltage', 'CT_Motor_current') +
                               calcP('LT_Motor_voltage', 'LT_Motor_current') + 
                               calcP('AH_Motor_voltage', 'AH_Motor_current');
-                    totalPower += p;
-                    
-                    ['MH','CT','LT','AH'].forEach(d => {
-                        if (parseInt(data[d+'_Altivar_fault_code']) > 0) totalFaults++;
-                    });
-                }
-            })
-            .catch(() => {});
-    })).then(() => {
-        // Update summaries ONCE after all fetches complete to avoid flickering
+
+                ['MH','CT','LT','AH'].forEach(d => {
+                    if (parseInt(data[d+'_Altivar_fault_code']) > 0) totalFaults++;
+                });
+            }
+
+            // Timestamp
+            const updateEl = document.getElementById(craneId + '-last-update');
+            if (updateEl) updateEl.textContent = data.Timestamp || '—';
+        });
+
+        // Update summary cards ONCE after all cranes processed
         document.getElementById('dash-total-power').textContent = totalPower.toFixed(1);
         document.getElementById('dash-faults').textContent = totalFaults;
         document.getElementById('online-cranes').textContent = onlineCount;
@@ -292,7 +305,7 @@ function updateDashboardOverview() {
 }
 
 updateDashboardOverview();
-setInterval(updateDashboardOverview, 500);
+setInterval(updateDashboardOverview, 2000);
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
