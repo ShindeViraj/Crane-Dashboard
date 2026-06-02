@@ -107,7 +107,17 @@ function applyDividers(&$record, $dividers) {
     foreach ($dividers as $param => $divisor) {
         if ($divisor == 0 || $divisor == 1) continue;
         if (isset($record[$param]) && is_numeric($record[$param])) {
-            $record[$param] = round(floatval($record[$param]) / $divisor, 4);
+            $dividedValue = floatval($record[$param]) / $divisor;
+            
+            // Logic inputs/outputs and DI must remain integers
+            if (strpos($param, 'Logic_input') !== false || 
+                strpos($param, 'Logic_output') !== false || 
+                strpos($param, 'di') !== false) {
+                $record[$param] = (int)round($dividedValue);
+            } else {
+                // Everything else remains a float (e.g. 50.1)
+                $record[$param] = round($dividedValue, 4);
+            }
         }
     }
     return $record;
