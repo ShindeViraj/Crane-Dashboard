@@ -4,6 +4,7 @@
  */
 require_once 'includes/auth.php';
 requireRole(['developer', 'admin']);
+require_once 'includes/dividers.php';
 
 $pageTitle = 'Manage Cranes';
 $pdo = getDbConnection();
@@ -25,14 +26,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $location = trim($_POST['location'] ?? '');
             $capacity = trim($_POST['capacity'] ?? '');
             $description = trim($_POST['description'] ?? '');
+            $dividers = parseDividersFromForm($_POST);
             
             if (empty($craneId) || empty($name)) {
                 $message = 'Crane ID and Name are required.';
                 $msgType = 'error';
             } else {
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, capacity, location, description) VALUES (:cid, :name, :cap, :loc, :desc)");
-                    $stmt->execute([':cid' => $craneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description]);
+                    $divJson = !empty($dividers) ? json_encode($dividers) : null;
+                    $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, capacity, location, description, dividers) VALUES (:cid, :name, :cap, :loc, :desc, :div)");
+                    $stmt->execute([':cid' => $craneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':div' => $divJson]);
+                    
+                    // Sync dividers to cache file
+                    syncDividersCache($craneId, $dividers);
+                    
                     $message = "Crane '$name' (ID: $craneId) added successfully!";
                     $msgType = 'success';
                 } catch (PDOException $e) {
@@ -51,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $location = trim($_POST['location'] ?? '');
             $capacity = trim($_POST['capacity'] ?? '');
             $description = trim($_POST['description'] ?? '');
+            $dividers = parseDividersFromForm($_POST);
             
             if ($id && $name && $newCraneId) {
                 try {
@@ -60,6 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $pdo->prepare("SELECT crane_id FROM cranes WHERE id = :id");
                     $stmt->execute([':id' => $id]);
                     $oldCraneId = $stmt->fetchColumn();
+                    
+                    $divJson = !empty($dividers) ? json_encode($dividers) : null;
                     
                     if ($oldCraneId !== $newCraneId) {
                         // Check if new crane_id exists
@@ -73,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
                         
                         // Update cranes
-                        $stmt = $pdo->prepare("UPDATE cranes SET crane_id = :new_cid, name = :name, capacity = :cap, location = :loc, description = :desc WHERE id = :id");
-                        $stmt->execute([':new_cid' => $newCraneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':id' => $id]);
+                        $stmt = $pdo->prepare("UPDATE cranes SET crane_id = :new_cid, name = :name, capacity = :cap, location = :loc, description = :desc, dividers = :div WHERE id = :id");
+                        $stmt->execute([':new_cid' => $newCraneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':div' => $divJson, ':id' => $id]);
                         
                         // Update related tables to preserve history and assignments
                         $stmt = $pdo->prepare("UPDATE user_cranes SET crane_id = :new_cid WHERE crane_id = :old_cid");
@@ -85,10 +95,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         // Re-enable FK checks
                         $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+                        
+                        // Delete old cache, create new
+                        $oldCacheFile = getDividersCacheFile($oldCraneId);
+                        if (file_exists($oldCacheFile)) @unlink($oldCacheFile);
+                        syncDividersCache($newCraneId, $dividers);
                     } else {
                         // No crane_id change, just update other fields
-                        $stmt = $pdo->prepare("UPDATE cranes SET name = :name, capacity = :cap, location = :loc, description = :desc WHERE id = :id");
-                        $stmt->execute([':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':id' => $id]);
+                        $stmt = $pdo->prepare("UPDATE cranes SET name = :name, capacity = :cap, location = :loc, description = :desc, dividers = :div WHERE id = :id");
+                        $stmt->execute([':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':div' => $divJson, ':id' => $id]);
+                        
+                        syncDividersCache($newCraneId, $dividers);
                     }
                     
                     $pdo->commit();
@@ -114,8 +131,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'delete') {
             $id = intval($_POST['id'] ?? 0);
             if ($id) {
+                // Get crane_id before deleting to clean up cache
+                $stmt = $pdo->prepare("SELECT crane_id FROM cranes WHERE id = :id");
+                $stmt->execute([':id' => $id]);
+                $delCraneId = $stmt->fetchColumn();
+                
                 $stmt = $pdo->prepare("DELETE FROM cranes WHERE id = :id");
                 $stmt->execute([':id' => $id]);
+                
+                // Clean up cache file
+                if ($delCraneId) {
+                    $cacheFile = getDividersCacheFile($delCraneId);
+                    if (file_exists($cacheFile)) @unlink($cacheFile);
+                }
+                
                 $message = "Crane deleted successfully.";
                 $msgType = 'success';
             }
@@ -125,6 +154,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch all cranes with dynamic online status timestamp
 $cranes = $pdo->query("SELECT c.*, (SELECT MAX(cd.Timestamp) FROM crane_data cd WHERE cd.crane_id = c.crane_id) as last_data_at FROM cranes c ORDER BY c.crane_id ASC")->fetchAll();
+
+// Prepare the divider parameter labels for the UI grid
+$paramLabels = [
+    'Output_frequency' => 'Output Freq',
+    'Motor_current' => 'Motor Current',
+    'Motor_torque' => 'Motor Torque',
+    'Mains_voltage' => 'Mains Voltage',
+    'Motor_voltage' => 'Motor Voltage',
+    'Motor_power' => 'Motor Power',
+    'Drive_temp' => 'Drive Temp',
+    'Motion_run_time' => 'Run Time',
+    'Encoder' => 'Encoder',
+    'Load_data' => 'Load Data'
+];
 
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
@@ -186,6 +229,45 @@ require_once 'includes/sidebar.php';
                     <textarea class="form-control form-input-custom" id="add-crane-desc" name="description" rows="2"
                               placeholder="Optional notes about this crane"></textarea>
                 </div>
+                
+                <!-- Dividers Section (Collapsible) -->
+                <div class="mb-3">
+                    <button class="btn btn-sm btn-outline-action w-100" type="button" data-bs-toggle="collapse" data-bs-target="#add-dividers-section">
+                        <i class="bi bi-sliders"></i> Parameter Dividers <small class="text-muted">(optional — default: 1)</small>
+                    </button>
+                    <div class="collapse mt-2" id="add-dividers-section">
+                        <div class="table-responsive" style="max-height:400px;overflow-y:auto;">
+                            <table class="table table-sm table-bordered" style="font-size:0.8rem;">
+                                <thead style="position:sticky;top:0;z-index:1;background:var(--bg-card);">
+                                    <tr>
+                                        <th style="min-width:100px;">Parameter</th>
+                                        <?php foreach (MOTION_PREFIXES as $prefix): ?>
+                                        <th class="text-center" style="width:70px;"><?php echo $prefix; ?></th>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($paramLabels as $paramKey => $paramLabel): ?>
+                                    <tr>
+                                        <td class="align-middle" style="font-weight:600;font-size:0.75rem;"><?php echo $paramLabel; ?></td>
+                                        <?php foreach (MOTION_PREFIXES as $prefix): ?>
+                                        <td>
+                                            <input type="number" step="any" min="0" 
+                                                   class="form-control form-control-sm text-center" 
+                                                   name="divider[<?php echo $prefix . '_' . $paramKey; ?>]" 
+                                                   placeholder="1" 
+                                                   style="font-size:0.75rem;padding:2px 4px;">
+                                        </td>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <small class="form-text text-muted">Leave empty or set to 1 for no scaling. Incoming value will be divided by this number.</small>
+                    </div>
+                </div>
+                
                 <button type="submit" class="btn btn-success-gradient" id="btn-add-crane">
                     <i class="bi bi-plus-lg"></i> Add Crane
                 </button>
@@ -255,7 +337,7 @@ require_once 'includes/sidebar.php';
 
 <!-- Edit Modal -->
 <div class="modal fade" id="editCraneModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius:12px;border:none;">
             <form method="POST" id="form-edit-crane">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
@@ -266,25 +348,67 @@ require_once 'includes/sidebar.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" style="padding:12px 24px 24px;">
-                    <div class="mb-3">
-                        <label class="settings-label" for="edit-crane-id">Crane ID *</label>
-                        <input type="text" class="form-control form-input-custom" id="edit-crane-id" name="crane_id" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="settings-label" for="edit-crane-id">Crane ID *</label>
+                            <input type="text" class="form-control form-input-custom" id="edit-crane-id" name="crane_id" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="settings-label" for="edit-name">Name *</label>
+                            <input type="text" class="form-control form-input-custom" id="edit-name" name="name" required>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="settings-label" for="edit-name">Name</label>
-                        <input type="text" class="form-control form-input-custom" id="edit-name" name="name" required>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="settings-label" for="edit-capacity">Capacity</label>
+                            <input type="text" class="form-control form-input-custom" id="edit-capacity" name="capacity" placeholder="e.g., 10 Ton, 25 MT">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="settings-label" for="edit-location">Location</label>
+                            <input type="text" class="form-control form-input-custom" id="edit-location" name="location">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="settings-label" for="edit-description">Description</label>
+                            <textarea class="form-control form-input-custom" id="edit-description" name="description" rows="1"></textarea>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="settings-label" for="edit-capacity">Capacity</label>
-                        <input type="text" class="form-control form-input-custom" id="edit-capacity" name="capacity" placeholder="e.g., 10 Ton, 25 MT">
-                    </div>
-                    <div class="mb-3">
-                        <label class="settings-label" for="edit-location">Location</label>
-                        <input type="text" class="form-control form-input-custom" id="edit-location" name="location">
-                    </div>
-                    <div class="mb-3">
-                        <label class="settings-label" for="edit-description">Description</label>
-                        <textarea class="form-control form-input-custom" id="edit-description" name="description" rows="2"></textarea>
+                    
+                    <!-- Dividers Grid -->
+                    <hr style="border-color:var(--border-color);margin:8px 0 16px;">
+                    <h6 style="font-family:'Manrope';font-weight:700;margin-bottom:12px;">
+                        <i class="bi bi-sliders"></i> Parameter Dividers
+                        <small class="text-muted fw-normal"> — leave empty or 1 for no scaling</small>
+                    </h6>
+                    <div class="table-responsive" style="max-height:350px;overflow-y:auto;">
+                        <table class="table table-sm table-bordered mb-0" style="font-size:0.8rem;">
+                            <thead style="position:sticky;top:0;z-index:1;background:var(--bg-card);">
+                                <tr>
+                                    <th style="min-width:100px;">Parameter</th>
+                                    <?php foreach (MOTION_PREFIXES as $prefix): ?>
+                                    <th class="text-center" style="width:70px;"><?php echo $prefix; ?></th>
+                                    <?php endforeach; ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($paramLabels as $paramKey => $paramLabel): ?>
+                                <tr>
+                                    <td class="align-middle" style="font-weight:600;font-size:0.75rem;"><?php echo $paramLabel; ?></td>
+                                    <?php foreach (MOTION_PREFIXES as $prefix): 
+                                        $fieldName = $prefix . '_' . $paramKey;
+                                    ?>
+                                    <td>
+                                        <input type="number" step="any" min="0" 
+                                               class="form-control form-control-sm text-center edit-divider" 
+                                               name="divider[<?php echo $fieldName; ?>]" 
+                                               id="edit-div-<?php echo $fieldName; ?>"
+                                               placeholder="1" 
+                                               style="font-size:0.75rem;padding:2px 4px;">
+                                    </td>
+                                    <?php endforeach; ?>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 <div class="modal-footer" style="border:none;padding:0 24px 24px;">
@@ -297,6 +421,19 @@ require_once 'includes/sidebar.php';
 </div>
 
 <script>
+// Divider field names for populating the edit modal
+const dividerFields = [
+    <?php 
+    $fields = [];
+    foreach (MOTION_PREFIXES as $prefix) {
+        foreach (array_keys($paramLabels) as $paramKey) {
+            $fields[] = "'" . $prefix . '_' . $paramKey . "'";
+        }
+    }
+    echo implode(',', $fields);
+    ?>
+];
+
 function editCrane(crane) {
     document.getElementById('edit-id').value = crane.id;
     document.getElementById('edit-crane-id').value = crane.crane_id;
@@ -304,6 +441,25 @@ function editCrane(crane) {
     document.getElementById('edit-capacity').value = crane.capacity || '';
     document.getElementById('edit-location').value = crane.location || '';
     document.getElementById('edit-description').value = crane.description || '';
+    
+    // Parse dividers JSON from database
+    let dividers = {};
+    if (crane.dividers) {
+        try {
+            dividers = typeof crane.dividers === 'string' ? JSON.parse(crane.dividers) : crane.dividers;
+        } catch(e) {
+            dividers = {};
+        }
+    }
+    
+    // Populate all divider fields
+    dividerFields.forEach(function(field) {
+        let input = document.getElementById('edit-div-' + field);
+        if (input) {
+            input.value = (dividers[field] && dividers[field] != 1) ? dividers[field] : '';
+        }
+    });
+    
     new bootstrap.Modal(document.getElementById('editCraneModal')).show();
 }
 </script>

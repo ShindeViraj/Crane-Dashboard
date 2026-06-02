@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS cranes (
     name VARCHAR(100) NOT NULL,
     location VARCHAR(200) DEFAULT '',
     description TEXT DEFAULT NULL,
+    dividers TEXT DEFAULT NULL,
     status ENUM('online','offline','maintenance') DEFAULT 'offline',
     last_data_at DATETIME DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -146,3 +147,8 @@ CREATE TABLE IF NOT EXISTS crane_data (
 -- ALTER TABLE users MODIFY COLUMN role ENUM('developer','admin','user') DEFAULT 'user';
 -- ALTER TABLE users MODIFY COLUMN email VARCHAR(100) DEFAULT NULL UNIQUE;
 -- Then run the CREATE TABLE user_cranes and INSERT developer above.
+
+-- ============================================
+-- MIGRATION: Add dividers column (run on existing databases)
+-- ============================================
+-- ALTER TABLE cranes ADD COLUMN dividers TEXT DEFAULT NULL AFTER description;

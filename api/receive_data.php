@@ -30,6 +30,7 @@ if (!in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT'])) {
 }
 
 require_once __DIR__ . '/../db/config.php';
+require_once __DIR__ . '/../includes/dividers.php';
 
 // ── Configurable Buffer Settings ──────────────────────────────────
 // DOWNSAMPLE_RATE: Save every N-th entry to the buffer (2 = every 2nd second)
@@ -177,6 +178,12 @@ if (!is_dir(CACHE_DIR)) {
 
 $craneIdVal = isset($data['crane_id']) ? $data['crane_id'] : '1';
 $tsVal = isset($data['Timestamp']) ? $data['Timestamp'] : date('Y-m-d H:i:s');
+
+// ── Apply Parameter Dividers (from local cache, 0 DB hits) ────────
+$craneDividers = loadDividers($craneIdVal);
+if (!empty($craneDividers)) {
+    applyDividers($data, $craneDividers);
+}
 
 // ── Step 1: Write Live State (every request, no DB) ──────────────
 // This file is read by get_latest.php for real-time dashboard display.

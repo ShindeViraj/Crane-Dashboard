@@ -42,6 +42,7 @@ if ($contentLength > $maxPayloadBytes) {
 set_time_limit(300);
 
 require_once __DIR__ . '/../db/config.php';
+require_once __DIR__ . '/../includes/dividers.php';
 
 // ── Per-IP Rate Limiting (10 req/min for bulk) ──────────────────
 $rateLimitDir = sys_get_temp_dir() . '/bml_ratelimit';
@@ -186,6 +187,16 @@ foreach ($records as &$record) {
     }
 }
 unset($record); // Break reference
+
+// ── Pre-process: Apply parameter dividers (from local cache, 0 DB hits)
+$bulkCraneId = isset($records[0]['crane_id']) ? $records[0]['crane_id'] : '1';
+$bulkDividers = loadDividers($bulkCraneId);
+if (!empty($bulkDividers)) {
+    foreach ($records as &$record) {
+        applyDividers($record, $bulkDividers);
+    }
+    unset($record);
+}
 
 // ── Multi-row batch INSERT (500 rows per query) ──────────────────
 // Instead of inserting one row at a time, we build multi-row INSERT
