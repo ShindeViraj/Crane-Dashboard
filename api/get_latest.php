@@ -74,7 +74,7 @@ try {
     $pdo = getDbConnection();
 
     $stmt = $pdo->prepare("
-        SELECT TIMESTAMPDIFF(SECOND, Timestamp, NOW()) as seconds_ago, Timestamp, crane_id,
+        SELECT TIMESTAMPDIFF(SECOND, Timestamp, DATE_ADD(NOW(), INTERVAL '5:30' HOUR_MINUTE)) as seconds_ago, Timestamp, crane_id,
             MH_Drive_status, MH_Output_frequency, MH_Motor_current, MH_Motor_torque,
             MH_Mains_voltage, MH_Motor_voltage, MH_Motor_power, MH_Drive_temp,
             MH_Motion_run_time, MH_Logic_input, MH_Logic_output, MH_Altivar_fault_code,
