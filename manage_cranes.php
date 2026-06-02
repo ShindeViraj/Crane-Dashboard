@@ -157,6 +157,7 @@ $cranes = $pdo->query("SELECT c.*, (SELECT MAX(cd.Timestamp) FROM crane_data cd 
 
 // Prepare the divider parameter labels for the UI grid
 $paramLabels = [
+    'Drive_status' => 'Drive Status',
     'Output_frequency' => 'Output Freq',
     'Motor_current' => 'Motor Current',
     'Motor_torque' => 'Motor Torque',
@@ -165,8 +166,11 @@ $paramLabels = [
     'Motor_power' => 'Motor Power',
     'Drive_temp' => 'Drive Temp',
     'Motion_run_time' => 'Run Time',
+    'Logic_input' => 'Logic Input',
+    'Logic_output' => 'Logic Output',
     'Encoder' => 'Encoder',
-    'Load_data' => 'Load Data'
+    'Load_data' => 'Load Data',
+    'di' => 'DI'
 ];
 
 require_once 'includes/header.php';

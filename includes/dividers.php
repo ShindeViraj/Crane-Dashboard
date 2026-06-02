@@ -12,9 +12,10 @@
 
 define('DIVIDERS_CACHE_DIR', __DIR__ . '/../cache');
 
-// Parameters that support dividers (numeric FLOAT columns only)
-// Excludes: Drive_status, Logic_input, Logic_output, Altivar_fault_code, di
+// Parameters that support dividers
+// Excludes: Altivar_fault_code
 define('DIVISIBLE_PARAMS', [
+    'Drive_status',
     'Output_frequency',
     'Motor_current',
     'Motor_torque',
@@ -23,8 +24,11 @@ define('DIVISIBLE_PARAMS', [
     'Motor_power',
     'Drive_temp',
     'Motion_run_time',
+    'Logic_input',
+    'Logic_output',
     'Encoder',
-    'Load_data'
+    'Load_data',
+    'di'
 ]);
 
 define('MOTION_PREFIXES', ['MH', 'CT', 'LT', 'AH']);
