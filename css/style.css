@@ -107,19 +107,19 @@ a {
 }
 
 .sidebar-logo {
-    min-height: 60px;
+    min-height: 72px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: 12px;
+    padding: 14px 16px;
     background: var(--primary-gradient);
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .logo-img-wrap {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     background: rgba(255,255,255,0.12);
     border-radius: var(--radius);
     display: flex;
@@ -130,8 +130,8 @@ a {
 }
 
 .sidebar-logo-img {
-    width: 28px;
-    height: 28px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
     border-radius: 4px;
 }
@@ -157,7 +157,7 @@ a {
 .logo-brand {
     font-family: 'Manrope', sans-serif;
     font-weight: 800;
-    font-size: 12px;
+    font-size: 15px;
     color: #fff;
     letter-spacing: 0.8px;
     line-height: 1.2;
@@ -166,7 +166,7 @@ a {
 .logo-sub {
     font-family: 'Manrope', sans-serif;
     font-weight: 500;
-    font-size: 9px;
+    font-size: 10px;
     color: rgba(255,255,255,0.65);
     letter-spacing: 0.5px;
     line-height: 1.35;
