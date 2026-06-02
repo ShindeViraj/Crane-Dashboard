@@ -150,7 +150,7 @@ function updateDrivesLive(data) {
         const p = PREFIXES[i];
         
         // Status
-        const status = parseFloat(data[p + '_Drive_status']) || 0;
+        const status = parseInt(data[p + '_Drive_status']) || 0;
         const statusChip = document.getElementById(d + '-drive-status-chip');
         const statusText = document.getElementById(d + '-drive-status-text');
         statusText.textContent = status > 0 ? 'Running (' + status + ')' : 'Idle (0)';

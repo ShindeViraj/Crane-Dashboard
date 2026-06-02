@@ -302,7 +302,7 @@ require_once 'includes/sidebar.php';
                     <tbody>
                         <?php foreach ($cranes as $crane): 
                             $lastData = $crane['last_data_at'] ? strtotime($crane['last_data_at']) : 0;
-                            $isOnline = $lastData > 0 && (time() - $lastData) < 120;
+                            $isOnline = (time() - $lastData) < 50;
                         ?>
                         <tr>
                             <td><strong><?php echo htmlspecialchars($crane['crane_id']); ?></strong></td>

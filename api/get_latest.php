@@ -57,7 +57,6 @@ if (file_exists($liveStateFile)) {
         echo json_encode([
             'success' => true,
             'data' => $cacheData['data'],
-            'seconds_ago' => $cacheAge,
             'source' => 'cache',
             'cache_age_seconds' => $cacheAge
         ]);
@@ -74,7 +73,7 @@ try {
     $pdo = getDbConnection();
 
     $stmt = $pdo->prepare("
-        SELECT TIMESTAMPDIFF(SECOND, Timestamp, DATE_ADD(NOW(), INTERVAL '5:30' HOUR_MINUTE)) as seconds_ago, Timestamp, crane_id,
+        SELECT Timestamp, crane_id,
             MH_Drive_status, MH_Output_frequency, MH_Motor_current, MH_Motor_torque,
             MH_Mains_voltage, MH_Motor_voltage, MH_Motor_power, MH_Drive_temp,
             MH_Motion_run_time, MH_Logic_input, MH_Logic_output, MH_Altivar_fault_code,
@@ -99,18 +98,14 @@ try {
     $cachePayload = null;
 
     if ($row) {
-        $secondsAgo = $row['seconds_ago'];
-        unset($row['seconds_ago']); // keep the data object clean
-
         $cachePayload = [
-            '_cached_at' => time() - (int)$secondsAgo, // backdate the cache time
+            '_cached_at' => time(),
             'data' => $row
         ];
         http_response_code(200);
         echo json_encode([
             'success' => true,
             'data' => $row,
-            'seconds_ago' => $secondsAgo,
             'source' => 'database'
         ]);
     } else {
