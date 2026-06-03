@@ -62,7 +62,7 @@ require_once 'includes/sidebar.php';
             <h3 class="card-title text-uppercase">Total Power Consumption</h3>
             <div class="power-hero">
                 <span class="power-value" id="total-power-value">—</span>
-                <span class="power-unit">kWh</span>
+                <span class="power-unit">kW</span>
             </div>
             <div class="power-timestamp">
                 <i class="bi bi-clock"></i>
@@ -80,25 +80,25 @@ require_once 'includes/sidebar.php';
                     <span class="drive-power-label">
                         <span class="legend-dot" style="background:#E67E22;"></span> MH
                     </span>
-                    <span class="drive-power-value" id="mh-power-kwh">— kWh</span>
+                    <span class="drive-power-value" id="mh-power-kwh">— kW</span>
                 </div>
                 <div class="drive-power-row">
                     <span class="drive-power-label">
                         <span class="legend-dot" style="background:#3498DB;"></span> CT
                     </span>
-                    <span class="drive-power-value" id="ct-power-kwh">— kWh</span>
+                    <span class="drive-power-value" id="ct-power-kwh">— kW</span>
                 </div>
                 <div class="drive-power-row">
                     <span class="drive-power-label">
                         <span class="legend-dot" style="background:#95A5A6;"></span> LT
                     </span>
-                    <span class="drive-power-value" id="lt-power-kwh">— kWh</span>
+                    <span class="drive-power-value" id="lt-power-kwh">— kW</span>
                 </div>
                 <div class="drive-power-row">
                     <span class="drive-power-label">
                         <span class="legend-dot" style="background:#F1C40F;"></span> AH
                     </span>
-                    <span class="drive-power-value" id="ah-power-kwh">— kWh</span>
+                    <span class="drive-power-value" id="ah-power-kwh">— kW</span>
                 </div>
             </div>
         </div>
@@ -119,6 +119,9 @@ require_once 'includes/sidebar.php';
 
 <script>
 const CRANE_ID = '<?php echo $craneId; ?>';
+
+// Safe numeric parser — preserves negative values, only defaults to 0 for missing/NaN
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 
 // ============ PIE CHART ============
 const pieCtx = document.getElementById('motionPieChart').getContext('2d');
@@ -224,13 +227,10 @@ const powerLineChart = new Chart(lineCtx, {
 });
 
 // ============ LIVE DATA POLLING ============
-// Safe number parser — handles negative values correctly (parseFloat(x) || 0 swallows -0)
-function safeNum(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
-
 // Calculate power from live voltage × current data (P = V × I × √3 / 1000 for 3-phase, in kW)
 function calcPower(voltage, current) {
-    const v = safeNum(voltage);
-    const i = safeNum(current);
+    const v = num(voltage);
+    const i = num(current);
     return (v * i * 1.732) / 1000; // 3-phase power in kW
 }
 
@@ -255,10 +255,10 @@ function updateCraneLive(data) {
     document.getElementById('ah-power-kwh').textContent = ahPower.toFixed(2) + ' kW';
     
     // Motion Pie Chart - update with run times
-    const mhRun = safeNum(data.MH_Motion_run_time) || 1;
-    const ctRun = safeNum(data.CT_Motion_run_time) || 1;
-    const ltRun = safeNum(data.LT_Motion_run_time) || 1;
-    const ahRun = safeNum(data.AH_Motion_run_time) || 1;
+    const mhRun = num(data.MH_Motion_run_time) || 1;
+    const ctRun = num(data.CT_Motion_run_time) || 1;
+    const ltRun = num(data.LT_Motion_run_time) || 1;
+    const ahRun = num(data.AH_Motion_run_time) || 1;
     motionPieChart.data.datasets[0].data = [mhRun, ctRun, ltRun, ahRun];
     motionPieChart.update('none');
 }

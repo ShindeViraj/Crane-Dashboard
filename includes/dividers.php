@@ -109,13 +109,12 @@ function applyDividers(&$record, $dividers) {
         if (isset($record[$param]) && is_numeric($record[$param])) {
             $dividedValue = floatval($record[$param]) / $divisor;
             
-            // Logic inputs/outputs and DI must remain integers
+            // Logic inputs/outputs must remain integers
             if (strpos($param, 'Logic_input') !== false || 
-                strpos($param, 'Logic_output') !== false || 
-                strpos($param, 'di') !== false) {
+                strpos($param, 'Logic_output') !== false) {
                 $record[$param] = (int)round($dividedValue);
             } else {
-                // Everything else remains a float (e.g. 50.1)
+                // Everything else (including di) remains a float (e.g. 50.1)
                 $record[$param] = round($dividedValue, 4);
             }
         }

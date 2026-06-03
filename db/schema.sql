@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS crane_data (
     MH_Altivar_fault_code VARCHAR(10) DEFAULT NULL,
     MH_Encoder FLOAT DEFAULT NULL,
     MH_Load_data FLOAT DEFAULT NULL,
-    MH_di INT DEFAULT NULL,
+    MH_di FLOAT DEFAULT NULL,
     
     -- Cross Travel (CT) Parameters
     CT_Drive_status VARCHAR(10) DEFAULT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS crane_data (
     CT_Altivar_fault_code VARCHAR(10) DEFAULT NULL,
     CT_Encoder FLOAT DEFAULT NULL,
     CT_Load_data FLOAT DEFAULT NULL,
-    CT_di INT DEFAULT NULL,
+    CT_di FLOAT DEFAULT NULL,
     
     -- Long Travel (LT) Parameters
     LT_Drive_status VARCHAR(10) DEFAULT NULL,
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS crane_data (
     LT_Altivar_fault_code VARCHAR(10) DEFAULT NULL,
     LT_Encoder FLOAT DEFAULT NULL,
     LT_Load_data FLOAT DEFAULT NULL,
-    LT_di INT DEFAULT NULL,
+    LT_di FLOAT DEFAULT NULL,
     
     -- Auxiliary Hoist (AH) Parameters
     AH_Drive_status VARCHAR(10) DEFAULT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS crane_data (
     AH_Altivar_fault_code VARCHAR(10) DEFAULT NULL,
     AH_Encoder FLOAT DEFAULT NULL,
     AH_Load_data FLOAT DEFAULT NULL,
-    AH_di INT DEFAULT NULL,
+    AH_di FLOAT DEFAULT NULL,
     
     INDEX idx_timestamp (Timestamp),
     INDEX idx_crane_id (crane_id),
@@ -152,3 +152,12 @@ CREATE TABLE IF NOT EXISTS crane_data (
 -- MIGRATION: Add dividers column (run on existing databases)
 -- ============================================
 -- ALTER TABLE cranes ADD COLUMN dividers TEXT DEFAULT NULL AFTER description;
+
+-- ============================================
+-- MIGRATION: Change di columns from INT to FLOAT (run on existing databases)
+-- ============================================
+-- ALTER TABLE crane_data 
+--   MODIFY MH_di FLOAT DEFAULT NULL,
+--   MODIFY CT_di FLOAT DEFAULT NULL,
+--   MODIFY LT_di FLOAT DEFAULT NULL,
+--   MODIFY AH_di FLOAT DEFAULT NULL;

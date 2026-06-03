@@ -78,7 +78,7 @@ $drives = [
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-arrow-repeat"></i> Motor Torque</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-torque">— <small>Nm</small></span>
+                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-torque">— <small>%</small></span>
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-plug"></i> Mains Voltage</span>
@@ -121,7 +121,7 @@ $drives = [
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-load-data">—</span>
                 </div>
                 <div class="param-row">
-                    <span class="param-label"><i class="bi bi-battery-charging"></i> Total Energy Consumed</span>
+                    <span class="param-label"><i class="bi bi-battery-charging"></i> Energy Consumed</span>
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-di">— <small>kWh</small></span>
                 </div>
             </div>
@@ -141,6 +141,9 @@ global $faultMap;
 ?>
 const FAULT_MAP = <?php echo json_encode($faultMap); ?>;
 
+// Safe numeric parser — preserves negative values, only defaults to 0 for missing/NaN
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
 function updateDrivesLive(data) {
     if (!data) return;
     
@@ -150,50 +153,49 @@ function updateDrivesLive(data) {
         const p = PREFIXES[i];
         
         // Status
-        const status = parseInt(data[p + '_Drive_status']) || 0;
+        const status = num(data[p + '_Drive_status']);
         const statusChip = document.getElementById(d + '-drive-status-chip');
         const statusText = document.getElementById(d + '-drive-status-text');
         statusText.textContent = status > 0 ? 'Running (' + status + ')' : 'Idle (0)';
         statusChip.className = 'status-chip ' + (status > 0 ? 'status-online' : 'status-idle-chip');
         
-        // Parameters — helper that safely handles negative/signed values
-        const safeNum = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+        // Parameters
         const setVal = (id, val, unit) => {
             const el = document.getElementById(id);
             if (el) {
-                const v = (val !== null && val !== undefined && val !== '') ? val : '—';
+                const v = val !== null && val !== undefined && val !== '' ? val : '—';
                 el.innerHTML = v + (unit ? ' <small>' + unit + '</small>' : '');
             }
         };
         
-        setVal(d + '-output-freq', safeNum(data[p + '_Output_frequency']), 'Hz');
-        setVal(d + '-motor-current', safeNum(data[p + '_Motor_current']), 'A');
-        setVal(d + '-motor-torque', safeNum(data[p + '_Motor_torque']), 'Nm');
-        setVal(d + '-mains-voltage', safeNum(data[p + '_Mains_voltage']), 'V');
-        setVal(d + '-motor-voltage', safeNum(data[p + '_Motor_voltage']), 'V');
+        setVal(d + '-output-freq', data[p + '_Output_frequency'], 'Hz');
+        setVal(d + '-motor-current', data[p + '_Motor_current'], 'A');
+        setVal(d + '-motor-torque', data[p + '_Motor_torque'], '%');
+        setVal(d + '-mains-voltage', data[p + '_Mains_voltage'], 'V');
+        setVal(d + '-motor-voltage', data[p + '_Motor_voltage'], 'V');
         
-        // Motor Power — display raw % from VFD (not calculated)
-        setVal(d + '-motor-power', safeNum(data[p + '_Motor_power']), '%');
+        // Motor Power — display raw % value from VFD (no calculation)
+        setVal(d + '-motor-power', data[p + '_Motor_power'], '%');
         
-        setVal(d + '-run-time', safeNum(data[p + '_Motion_run_time']), 'hrs');
-        setVal(d + '-logic-in', safeNum(data[p + '_Logic_input']), '');
-        setVal(d + '-logic-out', safeNum(data[p + '_Logic_output']), '');
-        setVal(d + '-encoder', safeNum(data[p + '_Encoder']), '');
-        setVal(d + '-load-data', safeNum(data[p + '_Load_data']), '');
-        setVal(d + '-di', safeNum(data[p + '_di']), 'kWh');
+        setVal(d + '-run-time', data[p + '_Motion_run_time'], 'hrs');
+        setVal(d + '-logic-in', data[p + '_Logic_input'], '');
+        setVal(d + '-logic-out', data[p + '_Logic_output'], '');
+        setVal(d + '-encoder', data[p + '_Encoder'], '');
+        setVal(d + '-load-data', data[p + '_Load_data'], '');
+        setVal(d + '-di', data[p + '_di'], 'kWh');
         
-        // Drive temp with color coding (supports negative temps)
-        const temp = safeNum(data[p + '_Drive_temp']);
+        // Drive temp with color coding
+        const temp = num(data[p + '_Drive_temp']);
         const tempEl = document.getElementById(d + '-drive-temp');
         if (tempEl) {
-            tempEl.innerHTML = (temp !== null ? temp : '—') + ' <small>°C</small>';
+            tempEl.innerHTML = temp + ' <small>°C</small>';
             tempEl.classList.remove('temp-warning', 'temp-danger');
-            if (temp !== null && temp > 70) tempEl.classList.add('temp-danger');
-            else if (temp !== null && temp > 50) tempEl.classList.add('temp-warning');
+            if (temp > 70) tempEl.classList.add('temp-danger');
+            else if (temp > 50) tempEl.classList.add('temp-warning');
         }
         
         // Fault code with red highlight
-        const faultCode = parseInt(data[p + '_Altivar_fault_code']) || 0;
+        const faultCode = num(data[p + '_Altivar_fault_code']);
         const faultEl = document.getElementById(d + '-fault-code');
         if (faultEl) {
             if (faultCode > 0) {
