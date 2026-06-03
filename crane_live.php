@@ -282,11 +282,11 @@ function loadHistoryChart() {
             if (res.success && res.data && res.data.length > 0) {
                 const labels = res.data.map(d => d.date);
                 powerLineChart.data.labels = labels;
-                powerLineChart.data.datasets[0].data = res.data.map(d => parseFloat(d.avg_total_power) || 0);
-                powerLineChart.data.datasets[1].data = res.data.map(d => parseFloat(d.avg_mh_power) || 0);
-                powerLineChart.data.datasets[2].data = res.data.map(d => parseFloat(d.avg_ct_power) || 0);
-                powerLineChart.data.datasets[3].data = res.data.map(d => parseFloat(d.avg_lt_power) || 0);
-                powerLineChart.data.datasets[4].data = res.data.map(d => parseFloat(d.avg_ah_power) || 0);
+                powerLineChart.data.datasets[0].data = res.data.map(d => num(d.avg_total_power));
+                powerLineChart.data.datasets[1].data = res.data.map(d => num(d.avg_mh_power));
+                powerLineChart.data.datasets[2].data = res.data.map(d => num(d.avg_ct_power));
+                powerLineChart.data.datasets[3].data = res.data.map(d => num(d.avg_lt_power));
+                powerLineChart.data.datasets[4].data = res.data.map(d => num(d.avg_ah_power));
                 powerLineChart.update();
             }
         })
