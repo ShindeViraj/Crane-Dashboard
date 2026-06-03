@@ -89,8 +89,8 @@ $drives = [
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-voltage">— <small>V</small></span>
                 </div>
                 <div class="param-row">
-                    <span class="param-label"><i class="bi bi-lightning-charge"></i> Motor Power</span>
-                    <span class="param-value param-highlight" id="<?php echo strtolower($drive['prefix']); ?>-motor-power">— <small>kW</small></span>
+                    <span class="param-label"><i class="bi bi-lightning-charge"></i> Motor Load</span>
+                    <span class="param-value param-highlight" id="<?php echo strtolower($drive['prefix']); ?>-motor-power">— <small>%</small></span>
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-thermometer-half"></i> Motion Temp</span>
@@ -121,8 +121,8 @@ $drives = [
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-load-data">—</span>
                 </div>
                 <div class="param-row">
-                    <span class="param-label"><i class="bi bi-toggle-on"></i> DI</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-di">—</span>
+                    <span class="param-label"><i class="bi bi-lightning"></i> Energy Consumed</span>
+                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-di">— <small>kWh</small></span>
                 </div>
             </div>
         </div>
@@ -150,17 +150,18 @@ function updateDrivesLive(data) {
         const p = PREFIXES[i];
         
         // Status
-        const status = parseInt(data[p + '_Drive_status']) || 0;
+        const statusRaw = data[p + '_Drive_status'];
+        const status = (statusRaw !== null && statusRaw !== undefined && statusRaw !== '') ? Number(statusRaw) : 0;
         const statusChip = document.getElementById(d + '-drive-status-chip');
         const statusText = document.getElementById(d + '-drive-status-text');
         statusText.textContent = status > 0 ? 'Running (' + status + ')' : 'Idle (0)';
         statusChip.className = 'status-chip ' + (status > 0 ? 'status-online' : 'status-idle-chip');
         
-        // Parameters
-        const setVal = (id, val, unit) => {
+        // Parameters — helper that preserves negative/signed values
+        const setVal = (id, rawVal, unit) => {
             const el = document.getElementById(id);
             if (el) {
-                const v = val !== null && val !== undefined ? val : '—';
+                const v = (rawVal !== null && rawVal !== undefined && rawVal !== '') ? rawVal : '—';
                 el.innerHTML = v + (unit ? ' <small>' + unit + '</small>' : '');
             }
         };
@@ -171,20 +172,19 @@ function updateDrivesLive(data) {
         setVal(d + '-mains-voltage', data[p + '_Mains_voltage'], 'V');
         setVal(d + '-motor-voltage', data[p + '_Motor_voltage'], 'V');
         
-        const volt = parseFloat(data[p + '_Motor_voltage']) || 0;
-        const curr = parseFloat(data[p + '_Motor_current']) || 0;
-        const power = (volt * curr * 1.732 / 1000).toFixed(2);
-        setVal(d + '-motor-power', power, 'kW');
+        // Motor Power — display raw % from VFD (not calculated kW)
+        setVal(d + '-motor-power', data[p + '_Motor_power'], '%');
         
         setVal(d + '-run-time', data[p + '_Motion_run_time'], 'hrs');
         setVal(d + '-logic-in', data[p + '_Logic_input'], '');
         setVal(d + '-logic-out', data[p + '_Logic_output'], '');
         setVal(d + '-encoder', data[p + '_Encoder'], '');
         setVal(d + '-load-data', data[p + '_Load_data'], '');
-        setVal(d + '-di', data[p + '_di'], '');
+        setVal(d + '-di', data[p + '_di'], 'kWh');
         
-        // Drive temp with color coding
-        const temp = parseFloat(data[p + '_Drive_temp']) || 0;
+        // Drive temp with color coding — handle signed values
+        const tempRaw = data[p + '_Drive_temp'];
+        const temp = (tempRaw !== null && tempRaw !== undefined && tempRaw !== '') ? Number(tempRaw) : 0;
         const tempEl = document.getElementById(d + '-drive-temp');
         if (tempEl) {
             tempEl.innerHTML = temp + ' <small>°C</small>';
