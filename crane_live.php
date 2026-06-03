@@ -224,10 +224,13 @@ const powerLineChart = new Chart(lineCtx, {
 });
 
 // ============ LIVE DATA POLLING ============
+// Safe number parser — handles negative values correctly (parseFloat(x) || 0 swallows -0)
+function safeNum(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
 // Calculate power from live voltage × current data (P = V × I × √3 / 1000 for 3-phase, in kW)
 function calcPower(voltage, current) {
-    const v = parseFloat(voltage) || 0;
-    const i = parseFloat(current) || 0;
+    const v = safeNum(voltage);
+    const i = safeNum(current);
     return (v * i * 1.732) / 1000; // 3-phase power in kW
 }
 
@@ -252,10 +255,10 @@ function updateCraneLive(data) {
     document.getElementById('ah-power-kwh').textContent = ahPower.toFixed(2) + ' kW';
     
     // Motion Pie Chart - update with run times
-    const mhRun = parseFloat(data.MH_Motion_run_time) || 1;
-    const ctRun = parseFloat(data.CT_Motion_run_time) || 1;
-    const ltRun = parseFloat(data.LT_Motion_run_time) || 1;
-    const ahRun = parseFloat(data.AH_Motion_run_time) || 1;
+    const mhRun = safeNum(data.MH_Motion_run_time) || 1;
+    const ctRun = safeNum(data.CT_Motion_run_time) || 1;
+    const ltRun = safeNum(data.LT_Motion_run_time) || 1;
+    const ahRun = safeNum(data.AH_Motion_run_time) || 1;
     motionPieChart.data.datasets[0].data = [mhRun, ctRun, ltRun, ahRun];
     motionPieChart.update('none');
 }
