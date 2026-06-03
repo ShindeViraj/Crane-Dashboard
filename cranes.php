@@ -78,7 +78,7 @@ require_once 'includes/sidebar.php';
                 </span>
             </div>
             <div class="crane-list-meta">
-                <span><i class="bi bi-hash"></i> <strong>Sr No:</strong> <?php echo htmlspecialchars($crane['crane_id']); ?></span>
+                <span><i class="bi bi-hash"></i> <strong>SO. NO.:</strong> <?php echo htmlspecialchars($crane['crane_id']); ?></span>
                 <?php if (!empty($crane['capacity'])): ?>
                 <span><i class="bi bi-boxes"></i> <strong>Capacity:</strong> <?php echo htmlspecialchars($crane['capacity']); ?></span>
                 <?php endif; ?>

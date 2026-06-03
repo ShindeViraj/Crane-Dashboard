@@ -121,8 +121,8 @@ require_once 'includes/sidebar.php';
                     <?php if ($crane['location']): ?>
                     <span style="font-size:12px;color:#74777f;"><i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($crane['location']); ?></span>
                     <?php endif; ?>
-                    <!-- Crane detail chips: Sr No / Capacity / Name -->
-                    <span style="font-size:12px;color:#74777f;background:#f0f4ff;border-radius:6px;padding:2px 8px;"><strong>Sr No:</strong> <?php echo htmlspecialchars($crane['crane_id']); ?></span>
+                    <!-- Crane detail chips: SO. NO. / Capacity / Name -->
+                    <span style="font-size:12px;color:#74777f;background:#f0f4ff;border-radius:6px;padding:2px 8px;"><strong>SO. NO.:</strong> <?php echo htmlspecialchars($crane['crane_id']); ?></span>
                     <?php if (!empty($crane['capacity'])): ?>
                     <span style="font-size:12px;color:#74777f;background:#f0f4ff;border-radius:6px;padding:2px 8px;"><strong>Capacity:</strong> <?php echo htmlspecialchars($crane['capacity']); ?></span>
                     <?php endif; ?>

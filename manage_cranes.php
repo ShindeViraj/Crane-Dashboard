@@ -325,7 +325,7 @@ require_once 'includes/sidebar.php';
                 <table class="table table-custom" id="cranes-table">
                     <thead>
                         <tr>
-                            <th>Sr No</th>
+                            <th>SO. NO.</th>
                             <th>Name</th>
                             <th>Capacity</th>
                             <th>Location</th>
