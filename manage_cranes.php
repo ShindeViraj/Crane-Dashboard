@@ -64,10 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $pdo->beginTransaction();
                     
-                    // Get old crane_id
-                    $stmt = $pdo->prepare("SELECT crane_id FROM cranes WHERE id = :id");
+                    // Get old crane_id and dividers
+                    $stmt = $pdo->prepare("SELECT crane_id, dividers FROM cranes WHERE id = :id");
                     $stmt->execute([':id' => $id]);
-                    $oldCraneId = $stmt->fetchColumn();
+                    $oldCrane = $stmt->fetch();
+                    $oldCraneId = $oldCrane['crane_id'];
+                    $oldDividers = !empty($oldCrane['dividers']) ? json_decode($oldCrane['dividers'], true) : [];
                     
                     $divJson = !empty($dividers) ? json_encode($dividers) : null;
                     
@@ -106,6 +108,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt->execute([':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':div' => $divJson, ':id' => $id]);
                         
                         syncDividersCache($newCraneId, $dividers);
+                    }
+                    
+                    // Retroactive divider update for historical data
+                    if (!empty($_POST['retroactive_update'])) {
+                        $setClauses = [];
+                        foreach (MOTION_PREFIXES as $prefix) {
+                            foreach (DIVISIBLE_PARAMS as $param) {
+                                $col = $prefix . '_' . $param;
+                                $oldDiv = isset($oldDividers[$col]) ? (float)$oldDividers[$col] : 1.0;
+                                $newDiv = isset($dividers[$col]) ? (float)$dividers[$col] : 1.0;
+                                
+                                if ($oldDiv <= 0) $oldDiv = 1.0;
+                                if ($newDiv <= 0) $newDiv = 1.0;
+                                
+                                if (abs($oldDiv - $newDiv) > 0.0001) {
+                                    $multiplier = $oldDiv / $newDiv;
+                                    // For integer-based cols like Logic_input
+                                    if (strpos($col, 'Logic_input') !== false || strpos($col, 'Logic_output') !== false) {
+                                        $setClauses[] = "$col = ROUND($col * $multiplier)";
+                                    } else {
+                                        $setClauses[] = "$col = ROUND($col * $multiplier, 4)";
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!empty($setClauses)) {
+                            // Single massive update query to avoid hitting the 500 queries/hour limit
+                            $sql = "UPDATE crane_data SET " . implode(', ', $setClauses) . " WHERE crane_id = :cid";
+                            $stmt = $pdo->prepare($sql);
+                            $stmt->execute([':cid' => $newCraneId]);
+                        }
                     }
                     
                     $pdo->commit();
@@ -413,6 +447,13 @@ require_once 'includes/sidebar.php';
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                    </div>
+                    </div>
+                    <div class="mt-3 form-check" style="background: rgba(230, 126, 34, 0.1); padding: 12px 12px 12px 32px; border-radius: 6px; border: 1px solid rgba(230, 126, 34, 0.3);">
+                        <input class="form-check-input" type="checkbox" name="retroactive_update" value="1" id="retroactive_update">
+                        <label class="form-check-label" for="retroactive_update" style="font-size: 0.85rem; font-weight: 600; color: #d35400; cursor: pointer;">
+                            Apply new dividers retroactively to all past historical data
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer" style="border:none;padding:0 24px 24px;">

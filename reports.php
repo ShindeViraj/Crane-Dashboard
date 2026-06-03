@@ -72,17 +72,17 @@ if ($craneId) {
     // Select columns based on drive filter
     if ($driveFilter === 'all') {
         $selectCols = "Timestamp, crane_id,
-            MH_Drive_status, MH_Output_frequency, MH_Motor_current, MH_Motor_torque, MH_Mains_voltage, MH_Motor_voltage, MH_Motor_power, MH_Drive_temp, MH_Motion_run_time, MH_Altivar_fault_code,
-            CT_Drive_status, CT_Output_frequency, CT_Motor_current, CT_Motor_torque, CT_Mains_voltage, CT_Motor_voltage, CT_Motor_power, CT_Drive_temp, CT_Motion_run_time, CT_Altivar_fault_code,
-            LT_Drive_status, LT_Output_frequency, LT_Motor_current, LT_Motor_torque, LT_Mains_voltage, LT_Motor_voltage, LT_Motor_power, LT_Drive_temp, LT_Motion_run_time, LT_Altivar_fault_code,
-            AH_Drive_status, AH_Output_frequency, AH_Motor_current, AH_Motor_torque, AH_Mains_voltage, AH_Motor_voltage, AH_Motor_power, AH_Drive_temp, AH_Motion_run_time, AH_Altivar_fault_code";
+            MH_Drive_status, MH_Output_frequency, MH_Motor_current, MH_Motor_torque as MH_Motor_Torque_PCT, MH_Mains_voltage, MH_Motor_voltage, MH_Motor_power as MH_Motor_Power_PCT, MH_Drive_temp, MH_Motion_run_time, MH_Altivar_fault_code, MH_di as MH_Energy_Consumed_kWh,
+            CT_Drive_status, CT_Output_frequency, CT_Motor_current, CT_Motor_torque as CT_Motor_Torque_PCT, CT_Mains_voltage, CT_Motor_voltage, CT_Motor_power as CT_Motor_Power_PCT, CT_Drive_temp, CT_Motion_run_time, CT_Altivar_fault_code, CT_di as CT_Energy_Consumed_kWh,
+            LT_Drive_status, LT_Output_frequency, LT_Motor_current, LT_Motor_torque as LT_Motor_Torque_PCT, LT_Mains_voltage, LT_Motor_voltage, LT_Motor_power as LT_Motor_Power_PCT, LT_Drive_temp, LT_Motion_run_time, LT_Altivar_fault_code, LT_di as LT_Energy_Consumed_kWh,
+            AH_Drive_status, AH_Output_frequency, AH_Motor_current, AH_Motor_torque as AH_Motor_Torque_PCT, AH_Mains_voltage, AH_Motor_voltage, AH_Motor_power as AH_Motor_Power_PCT, AH_Drive_temp, AH_Motion_run_time, AH_Altivar_fault_code, AH_di as AH_Energy_Consumed_kWh";
     } else {
         $d = $driveFilter;
         $selectCols = "Timestamp, crane_id,
-            {$d}_Drive_status as Drive_status, {$d}_Output_frequency as Output_frequency, {$d}_Motor_current as Motor_current, {$d}_Motor_torque as Motor_torque,
-            {$d}_Mains_voltage as Mains_voltage, {$d}_Motor_voltage as Motor_voltage, {$d}_Motor_power as Motor_power, {$d}_Drive_temp as Drive_temp,
+            {$d}_Drive_status as Drive_status, {$d}_Output_frequency as Output_frequency, {$d}_Motor_current as Motor_current, {$d}_Motor_torque as Motor_Torque_PCT,
+            {$d}_Mains_voltage as Mains_voltage, {$d}_Motor_voltage as Motor_voltage, {$d}_Motor_power as Motor_Power_PCT, {$d}_Drive_temp as Drive_temp,
             {$d}_Motion_run_time as Motion_run_time, {$d}_Logic_input as Logic_input, {$d}_Logic_output as Logic_output, {$d}_Altivar_fault_code as Fault_code,
-            {$d}_Encoder as Encoder, {$d}_Load_data as Load_data, {$d}_di as Digital_inputs";
+            {$d}_Encoder as Encoder, {$d}_Load_data as Load_data, {$d}_di as Energy_Consumed_kWh";
     }
     
     // Count total records for this query
