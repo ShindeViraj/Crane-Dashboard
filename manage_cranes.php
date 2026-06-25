@@ -458,7 +458,6 @@ require_once 'includes/sidebar.php';
                             </tbody>
                         </table>
                     </div>
-                    </div>
                     <div class="mt-3 form-check" style="background: rgba(230, 126, 34, 0.1); padding: 12px 12px 12px 32px; border-radius: 6px; border: 1px solid rgba(230, 126, 34, 0.3);">
                         <input class="form-check-input" type="checkbox" name="retroactive_update" value="1" id="retroactive_update">
                         <label class="form-check-label" for="retroactive_update" style="font-size: 0.85rem; font-weight: 600; color: #d35400; cursor: pointer;">
