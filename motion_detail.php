@@ -53,10 +53,11 @@ require_once 'includes/sidebar.php';
 }
 .gauge-center-value {
     position: absolute;
-    bottom: 8px;
+    bottom: 25px;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
+    pointer-events: none;
 }
 .gauge-center-value .value {
     font-size: 32px;
@@ -69,8 +70,7 @@ require_once 'includes/sidebar.php';
     font-size: 13px;
     font-weight: 500;
     color: #8c8c8c;
-    display: block;
-    margin-top: 2px;
+    margin-left: 2px;
 }
 .gauge-range-labels {
     display: flex;
