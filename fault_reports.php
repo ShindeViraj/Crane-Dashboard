@@ -256,7 +256,7 @@ if ($craneId) {
                         <tr>
                             <th>DateTime</th>
                             <th>Motion</th>
-                            <th>Raw ID</th>
+                            <th>Fault Code</th>
                             <th>Fault Description</th>
                         </tr>
                     </thead>

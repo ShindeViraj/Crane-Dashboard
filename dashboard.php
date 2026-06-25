@@ -51,7 +51,7 @@ require_once 'includes/sidebar.php';
 
 <!-- Summary Cards Row -->
 <div class="row g-4 mb-4">
-    <div class="col-lg-3 col-md-6">
+    <div class="col-lg-4 col-md-6">
         <div class="summary-card">
             <div class="summary-icon" style="background: linear-gradient(135deg, #002147, #003d7a);">
                 <i class="bi bi-gear-wide-connected"></i>
@@ -62,7 +62,7 @@ require_once 'includes/sidebar.php';
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-md-6">
+    <div class="col-lg-4 col-md-6">
         <div class="summary-card">
             <div class="summary-icon" style="background: linear-gradient(135deg, #006e25, #00a63a);">
                 <i class="bi bi-activity"></i>
@@ -73,20 +73,10 @@ require_once 'includes/sidebar.php';
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="summary-card">
-            <div class="summary-icon" style="background: linear-gradient(135deg, #F57C00, #FF9800);">
-                <i class="bi bi-lightning-charge-fill"></i>
-            </div>
-            <div class="summary-body">
-                <span class="summary-label">Total Power</span>
-                <span class="summary-value" id="dash-total-power">—</span>
-                <span class="summary-unit">kW</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="summary-card">
+
+    <div class="col-lg-4 col-md-6">
+        <a href="fault_reports.php" style="text-decoration:none;color:inherit;">
+        <div class="summary-card" style="cursor:pointer;transition:transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(186,26,26,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='';">
             <div class="summary-icon" style="background: linear-gradient(135deg, #ba1a1a, #e53935);">
                 <i class="bi bi-exclamation-triangle-fill"></i>
             </div>
@@ -95,6 +85,7 @@ require_once 'includes/sidebar.php';
                 <span class="summary-value" id="dash-faults">0</span>
             </div>
         </div>
+        </a>
     </div>
 </div>
 
@@ -217,7 +208,6 @@ const CRANE_IDS = <?php echo json_encode(array_column($cranes, 'crane_id')); ?>;
 const OFFLINE_TIMEOUT = 50000; // 50 seconds in ms
 
 function updateDashboardOverview() {
-    let totalPower = 0;
     let totalFaults = 0;
     let onlineCount = 0;
     
@@ -262,13 +252,7 @@ function updateDashboardOverview() {
                     }
                 });
                 
-                // Power & Faults
-                const calcP = (v, c) => (parseFloat(data[v])||0) * (parseFloat(data[c])||0) * 1.732 / 1000;
-                const p = calcP('MH_Motor_voltage', 'MH_Motor_current') + 
-                          calcP('CT_Motor_voltage', 'CT_Motor_current') +
-                          calcP('LT_Motor_voltage', 'LT_Motor_current') + 
-                          calcP('AH_Motor_voltage', 'AH_Motor_current');
-                totalPower += p;
+                // Faults
                 
                 ['MH','CT','LT','AH'].forEach(d => {
                     if (parseInt(data[d+'_Altivar_fault_code']) > 0) totalFaults++;
@@ -279,7 +263,7 @@ function updateDashboardOverview() {
                 if (updateEl) updateEl.textContent = data.Timestamp || '—';
                 
                 // Update summaries
-                document.getElementById('dash-total-power').textContent = totalPower.toFixed(1);
+
                 document.getElementById('dash-faults').textContent = totalFaults;
                 document.getElementById('online-cranes').textContent = onlineCount;
             })

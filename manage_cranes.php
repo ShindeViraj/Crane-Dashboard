@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim($_POST['name'] ?? '');
             $location = trim($_POST['location'] ?? '');
             $capacity = trim($_POST['capacity'] ?? '');
+            $totalLifeHours = isset($_POST['total_life_hours']) && $_POST['total_life_hours'] !== '' ? floatval($_POST['total_life_hours']) : null;
             $description = trim($_POST['description'] ?? '');
             $dividers = parseDividersFromForm($_POST);
             
@@ -34,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 try {
                     $divJson = !empty($dividers) ? json_encode($dividers) : null;
-                    $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, capacity, location, description, dividers) VALUES (:cid, :name, :cap, :loc, :desc, :div)");
-                    $stmt->execute([':cid' => $craneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':div' => $divJson]);
+                    $stmt = $pdo->prepare("INSERT INTO cranes (crane_id, name, capacity, total_life_hours, location, description, dividers) VALUES (:cid, :name, :cap, :tlh, :loc, :desc, :div)");
+                    $stmt->execute([':cid' => $craneId, ':name' => $name, ':cap' => $capacity, ':tlh' => $totalLifeHours, ':loc' => $location, ':desc' => $description, ':div' => $divJson]);
                     
                     // Sync dividers to cache file
                     syncDividersCache($craneId, $dividers);
@@ -57,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim($_POST['name'] ?? '');
             $location = trim($_POST['location'] ?? '');
             $capacity = trim($_POST['capacity'] ?? '');
+            $totalLifeHours = isset($_POST['total_life_hours']) && $_POST['total_life_hours'] !== '' ? floatval($_POST['total_life_hours']) : null;
             $description = trim($_POST['description'] ?? '');
             $dividers = parseDividersFromForm($_POST);
             
@@ -85,8 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
                         
                         // Update cranes
-                        $stmt = $pdo->prepare("UPDATE cranes SET crane_id = :new_cid, name = :name, capacity = :cap, location = :loc, description = :desc, dividers = :div WHERE id = :id");
-                        $stmt->execute([':new_cid' => $newCraneId, ':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':div' => $divJson, ':id' => $id]);
+                        $stmt = $pdo->prepare("UPDATE cranes SET crane_id = :new_cid, name = :name, capacity = :cap, total_life_hours = :tlh, location = :loc, description = :desc, dividers = :div WHERE id = :id");
+                        $stmt->execute([':new_cid' => $newCraneId, ':name' => $name, ':cap' => $capacity, ':tlh' => $totalLifeHours, ':loc' => $location, ':desc' => $description, ':div' => $divJson, ':id' => $id]);
                         
                         // Update related tables to preserve history and assignments
                         $stmt = $pdo->prepare("UPDATE user_cranes SET crane_id = :new_cid WHERE crane_id = :old_cid");
@@ -104,8 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         syncDividersCache($newCraneId, $dividers);
                     } else {
                         // No crane_id change, just update other fields
-                        $stmt = $pdo->prepare("UPDATE cranes SET name = :name, capacity = :cap, location = :loc, description = :desc, dividers = :div WHERE id = :id");
-                        $stmt->execute([':name' => $name, ':cap' => $capacity, ':loc' => $location, ':desc' => $description, ':div' => $divJson, ':id' => $id]);
+                        $stmt = $pdo->prepare("UPDATE cranes SET name = :name, capacity = :cap, total_life_hours = :tlh, location = :loc, description = :desc, dividers = :div WHERE id = :id");
+                        $stmt->execute([':name' => $name, ':cap' => $capacity, ':tlh' => $totalLifeHours, ':loc' => $location, ':desc' => $description, ':div' => $divJson, ':id' => $id]);
                         
                         syncDividersCache($newCraneId, $dividers);
                     }
@@ -258,6 +260,10 @@ require_once 'includes/sidebar.php';
                            placeholder="e.g., 10 Ton, 25 MT">
                 </div>
                 <div class="mb-3">
+                    <label class="settings-label" for="add-crane-life">Total Life (Hours)</label>
+                    <input type="number" step="0.1" class="form-control form-input-custom" id="add-crane-life" name="total_life_hours" placeholder="e.g., 50000">
+                </div>
+                <div class="mb-3">
                     <label class="settings-label" for="add-crane-location">Location</label>
                     <input type="text" class="form-control form-input-custom" id="add-crane-location" name="location" 
                            placeholder="e.g., Bay 3, SA3">
@@ -402,6 +408,10 @@ require_once 'includes/sidebar.php';
                             <input type="text" class="form-control form-input-custom" id="edit-capacity" name="capacity" placeholder="e.g., 10 Ton, 25 MT">
                         </div>
                         <div class="col-md-4 mb-3">
+                            <label class="settings-label" for="edit-total-life">Total Life (Hours)</label>
+                            <input type="number" step="0.1" class="form-control form-input-custom" id="edit-total-life" name="total_life_hours" placeholder="e.g., 50000">
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="settings-label" for="edit-location">Location</label>
                             <input type="text" class="form-control form-input-custom" id="edit-location" name="location">
                         </div>
@@ -486,6 +496,7 @@ function editCrane(crane) {
     document.getElementById('edit-capacity').value = crane.capacity || '';
     document.getElementById('edit-location').value = crane.location || '';
     document.getElementById('edit-description').value = crane.description || '';
+    document.getElementById('edit-total-life').value = crane.total_life_hours || '';
     
     // Parse dividers JSON from database
     let dividers = {};

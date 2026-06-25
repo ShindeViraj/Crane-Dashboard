@@ -161,3 +161,8 @@ CREATE TABLE IF NOT EXISTS crane_data (
 --   MODIFY CT_di FLOAT DEFAULT NULL,
 --   MODIFY LT_di FLOAT DEFAULT NULL,
 --   MODIFY AH_di FLOAT DEFAULT NULL;
+
+-- ============================================
+-- MIGRATION: Add total_life_hours column (run on existing databases)
+-- ============================================
+-- ALTER TABLE cranes ADD COLUMN total_life_hours FLOAT DEFAULT NULL AFTER capacity;

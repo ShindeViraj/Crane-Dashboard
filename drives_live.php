@@ -28,6 +28,21 @@ $drives = [
 ];
 ?>
 
+<style>
+.param-bar {
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+.param-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+}
+</style>
+
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb" class="page-breadcrumb">
     <ol class="breadcrumb">
@@ -71,10 +86,12 @@ $drives = [
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-activity"></i> Output Frequency</span>
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-output-freq">— <small>Hz</small></span>
+                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-freq" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-lightning"></i> Motor Current</span>
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-current">— <small>A</small></span>
+                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-current" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-arrow-repeat"></i> Motor Torque</span>
@@ -91,22 +108,16 @@ $drives = [
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-lightning-charge"></i> Motor Load / Power</span>
                     <span class="param-value param-highlight" id="<?php echo strtolower($drive['prefix']); ?>-motor-power">— <small>%</small></span>
+                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-power" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-thermometer-half"></i> Motion Temp</span>
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-drive-temp">— <small>°C</small></span>
+                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-temp" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-clock-history"></i> Run Time</span>
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-run-time">— <small>hrs</small></span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-box-arrow-in-right"></i> Logic Input</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-logic-in">—</span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-box-arrow-right"></i> Logic Output</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-logic-out">—</span>
                 </div>
                 <div class="param-row">
                     <span class="param-label"><i class="bi bi-exclamation-triangle"></i> Fault Code</span>
@@ -125,6 +136,9 @@ $drives = [
                     <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-di">— <small>kWh</small></span>
                 </div>
             </div>
+            <a href="motion_detail.php?crane_id=<?php echo $craneId; ?>&motion=<?php echo $drive['prefix']; ?>" class="btn btn-sm btn-outline-primary w-100 mt-2">
+                <i class="bi bi-graph-up"></i> View Detailed Dashboard
+            </a>
         </div>
     </div>
     <?php endforeach; ?>
@@ -178,8 +192,6 @@ function updateDrivesLive(data) {
         setVal(d + '-motor-power', data[p + '_Motor_power'], '%');
         
         setVal(d + '-run-time', data[p + '_Motion_run_time'], 'hrs');
-        setVal(d + '-logic-in', data[p + '_Logic_input'], '');
-        setVal(d + '-logic-out', data[p + '_Logic_output'], '');
         setVal(d + '-encoder', data[p + '_Encoder'], '');
         setVal(d + '-load-data', data[p + '_Load_data'], '');
         setVal(d + '-di', data[p + '_di'], 'kWh');
@@ -193,6 +205,16 @@ function updateDrivesLive(data) {
             if (temp > 70) tempEl.classList.add('temp-danger');
             else if (temp > 50) tempEl.classList.add('temp-warning');
         }
+        
+        // Update mini progress bars
+        const setBar = (id, value, max) => {
+            const bar = document.getElementById(id);
+            if (bar) bar.style.width = Math.min(Math.max(num(value) / max * 100, 0), 100) + '%';
+        };
+        setBar(d + '-bar-freq', data[p + '_Output_frequency'], 100);
+        setBar(d + '-bar-current', data[p + '_Motor_current'], 100);
+        setBar(d + '-bar-power', data[p + '_Motor_power'], 100);
+        setBar(d + '-bar-temp', data[p + '_Drive_temp'], 100);
         
         // Fault code with red highlight
         const faultCode = num(data[p + '_Altivar_fault_code']);
