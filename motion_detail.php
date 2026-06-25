@@ -313,8 +313,8 @@ function updateGauge(id, value, max) {
     const arc = el.querySelector('.gauge-arc');
     if (arc) arc.setAttribute('stroke-dasharray', filledLen + ' ' + arcLen);
 
-    // Update needle — rotate from -90deg (0%) to +90deg (100%)
-    const degrees = -90 + (pct * 180);
+    // Update needle — rotate from 0deg (0%) to 180deg (100%)
+    const degrees = pct * 180;
     const needle = el.querySelector('.gauge-needle');
     if (needle) needle.style.transform = 'rotate(' + degrees + 'deg)';
 
