@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     
                     $pdo->commit();
-                    $message = "Crane updated successfully!";
+                    $message = "Crane updated successfully! (Submitted Life: " . (isset($_POST['total_life_hours']) && $_POST['total_life_hours'] !== '' ? htmlspecialchars($_POST['total_life_hours']) : 'empty/not set') . ")";
                     $msgType = 'success';
                 } catch (Exception $e) {
                     if ($pdo->inTransaction()) {
