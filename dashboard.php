@@ -219,9 +219,7 @@ function updateDashboardOverview() {
                 const data = res.data;
                 
                 // Check online status (50s timeout)
-                const dataTime = new Date(data.Timestamp).getTime();
-                const now = Date.now();
-                const isOnline = (now - dataTime) < OFFLINE_TIMEOUT;
+                const isOnline = res.age_seconds !== null && res.age_seconds !== undefined ? (res.age_seconds < 50) : ((Date.now() - new Date(data.Timestamp).getTime()) < OFFLINE_TIMEOUT);
                 
                 const statusEl = document.getElementById('crane-status-' + craneId);
                 if (statusEl) {
@@ -235,27 +233,27 @@ function updateDashboardOverview() {
                     const p = ['MH','CT','LT','AH'][i];
                     const prefix = craneId + '-' + d;
                     const el = (id) => document.getElementById(prefix + '-' + id);
-                    if (el('freq')) el('freq').textContent = (data[p+'_Output_frequency'] || '—') + ' Hz';
-                    if (el('current')) el('current').textContent = (data[p+'_Motor_current'] || '—') + ' A';
+                    if (el('freq')) el('freq').textContent = (isOnline ? (data[p+'_Output_frequency'] || '0') : '0') + ' Hz';
+                    if (el('current')) el('current').textContent = (isOnline ? (data[p+'_Motor_current'] || '0') : '0') + ' A';
                     
-                    const volt = parseFloat(data[p+'_Motor_voltage']) || 0;
-                    const curr = parseFloat(data[p+'_Motor_current']) || 0;
+                    const volt = isOnline ? (parseFloat(data[p+'_Motor_voltage']) || 0) : 0;
+                    const curr = isOnline ? (parseFloat(data[p+'_Motor_current']) || 0) : 0;
                     const drivePower = (volt * curr * 1.732 / 1000);
                     
                     if (el('power')) el('power').textContent = drivePower.toFixed(2) + ' kW';
-                    if (el('temp')) el('temp').textContent = (data[p+'_Drive_temp'] || '—') + ' °C';
+                    if (el('temp')) el('temp').textContent = (isOnline ? (data[p+'_Drive_temp'] || '0') : '0') + ' °C';
                     
                     const statusDot = el('status-dot');
                     if (statusDot) {
-                        const s = parseInt(data[p+'_Drive_status']) || 0;
+                        const s = isOnline ? (parseInt(data[p+'_Drive_status']) || 0) : 0;
                         statusDot.className = 'drive-mini-status ' + (s > 0 ? 'status-running' : 'status-idle');
                     }
                 });
                 
                 // Faults
-                
                 ['MH','CT','LT','AH'].forEach(d => {
-                    if (parseInt(data[d+'_Altivar_fault_code']) > 0) totalFaults++;
+                    const faultCode = isOnline ? (parseInt(data[d+'_Altivar_fault_code']) || 0) : 0;
+                    if (faultCode > 0) totalFaults++;
                 });
                 
                 // Timestamp

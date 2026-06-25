@@ -53,12 +53,22 @@ if (file_exists($liveStateFile)) {
         // Cache exists — serve directly without touching the database
         // We do this REGARDLESS of age, because if Node-RED stops sending data,
         // the cache is still the most up-to-date source of truth.
+        // Calculate exact age of data timestamp (IST) relative to server time (UTC)
+        $ageSeconds = null;
+        if (isset($cacheData['data']['Timestamp'])) {
+            try {
+                $dt = new DateTime($cacheData['data']['Timestamp'], new DateTimeZone('Asia/Kolkata'));
+                $ageSeconds = time() - $dt->getTimestamp();
+            } catch (Exception $e) {}
+        }
+
         http_response_code(200);
         echo json_encode([
             'success' => true,
             'data' => $cacheData['data'],
             'source' => 'cache',
-            'cache_age_seconds' => $cacheAge
+            'cache_age_seconds' => $cacheAge,
+            'age_seconds' => $ageSeconds
         ]);
         exit;
     }
@@ -102,11 +112,20 @@ try {
             '_cached_at' => time(),
             'data' => $row
         ];
+        $ageSeconds = null;
+        if (isset($row['Timestamp'])) {
+            try {
+                $dt = new DateTime($row['Timestamp'], new DateTimeZone('Asia/Kolkata'));
+                $ageSeconds = time() - $dt->getTimestamp();
+            } catch (Exception $e) {}
+        }
+
         http_response_code(200);
         echo json_encode([
             'success' => true,
             'data' => $row,
-            'source' => 'database'
+            'source' => 'database',
+            'age_seconds' => $ageSeconds
         ]);
     } else {
         // Even if no data, write an empty payload to stop DB hammering

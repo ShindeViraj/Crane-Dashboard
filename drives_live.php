@@ -254,20 +254,37 @@ const PREFIXES = ['MH', 'CT', 'LT', 'AH'];
 // Safe numeric parser
 const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 
-function updateDrivesLive(data) {
+function updateDrivesLive(data, ageSeconds) {
     if (!data) return;
     
-    document.getElementById('drives-last-update').textContent = data.Timestamp || '—';
+    const isOnline = ageSeconds !== null && ageSeconds !== undefined ? (ageSeconds < 50) : true;
+    
+    const lastUpdateEl = document.getElementById('drives-last-update');
+    if (lastUpdateEl) {
+        if (isOnline) {
+            lastUpdateEl.textContent = data.Timestamp || '—';
+            lastUpdateEl.style.color = '';
+        } else {
+            lastUpdateEl.innerHTML = (data.Timestamp || '—') + ' <span class="badge bg-danger ms-1" style="font-size: 11px;">Offline</span>';
+            lastUpdateEl.style.color = '#e74c3c';
+        }
+    }
     
     DRIVES.forEach((d, i) => {
         const p = PREFIXES[i];
         
         // Status
-        const status = num(data[p + '_Drive_status']);
+        const status = isOnline ? num(data[p + '_Drive_status']) : 0;
         const statusChip = document.getElementById(d + '-drive-status-chip');
         const statusText = document.getElementById(d + '-drive-status-text');
-        statusText.textContent = status > 0 ? 'Running (' + status + ')' : 'Idle (0)';
-        statusChip.className = 'motion-card-status status-chip ' + (status > 0 ? 'status-online' : 'status-idle-chip');
+        
+        if (isOnline) {
+            statusText.textContent = status > 0 ? 'Running (' + status + ')' : 'Idle (0)';
+            statusChip.className = 'motion-card-status status-chip ' + (status > 0 ? 'status-online' : 'status-idle-chip');
+        } else {
+            statusText.textContent = 'Offline';
+            statusChip.className = 'motion-card-status status-chip status-idle-chip';
+        }
         
         // Value setter
         const setVal = (id, val, unit) => {
@@ -278,24 +295,24 @@ function updateDrivesLive(data) {
             }
         };
         
-        setVal(d + '-output-freq', data[p + '_Output_frequency'], 'Hz');
-        setVal(d + '-motor-current', data[p + '_Motor_current'], 'A');
-        setVal(d + '-motor-power', data[p + '_Motor_power'], '%');
+        setVal(d + '-output-freq', isOnline ? data[p + '_Output_frequency'] : '0', 'Hz');
+        setVal(d + '-motor-current', isOnline ? data[p + '_Motor_current'] : '0', 'A');
+        setVal(d + '-motor-power', isOnline ? data[p + '_Motor_power'] : '0', '%');
         setVal(d + '-run-time', data[p + '_Motion_run_time'], 'hrs');
         setVal(d + '-di', data[p + '_di'], 'kWh');
         
         // Temp with color coding
-        const temp = num(data[p + '_Drive_temp']);
+        const temp = isOnline ? num(data[p + '_Drive_temp']) : 0;
         const tempEl = document.getElementById(d + '-drive-temp');
         if (tempEl) {
-            tempEl.innerHTML = temp + ' <small>°C</small>';
-            tempEl.style.color = temp > 70 ? '#e74c3c' : (temp > 50 ? '#f39c12' : '#002147');
+            tempEl.innerHTML = (isOnline ? temp : '0') + ' <small>°C</small>';
+            tempEl.style.color = isOnline ? (temp > 70 ? '#e74c3c' : (temp > 50 ? '#f39c12' : '#002147')) : '#8c8c8c';
         }
         
         // Progress bars
         const setBar = (id, value, max) => {
             const bar = document.getElementById(id);
-            if (bar) bar.style.width = Math.min(Math.max(num(value) / max * 100, 0), 100) + '%';
+            if (bar) bar.style.width = isOnline ? (Math.min(Math.max(num(value) / max * 100, 0), 100) + '%') : '0%';
         };
         setBar(d + '-bar-freq', data[p + '_Output_frequency'], 100);
         setBar(d + '-bar-current', data[p + '_Motor_current'], 100);
@@ -309,7 +326,7 @@ function pollDrives() {
         .then(r => r.json())
         .then(res => {
             if (res.success && res.data) {
-                updateDrivesLive(res.data);
+                updateDrivesLive(res.data, res.age_seconds);
             }
         })
         .catch(err => console.warn('Poll error:', err));

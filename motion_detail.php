@@ -390,28 +390,38 @@ const trendChart = new Chart(trendCtx, {
 });
 
 // ===== Live Data Update =====
-function updateMotionDetail(data) {
+function updateMotionDetail(data, ageSeconds) {
     const P = MOTION;
+    const isOnline = ageSeconds !== null && ageSeconds !== undefined ? (ageSeconds < 50) : true;
 
-    document.getElementById('motion-last-update').textContent = data.Timestamp || '—';
+    const lastUpdateEl = document.getElementById('motion-last-update');
+    if (lastUpdateEl) {
+        if (isOnline) {
+            lastUpdateEl.textContent = data.Timestamp || '—';
+            lastUpdateEl.style.color = '';
+        } else {
+            lastUpdateEl.innerHTML = (data.Timestamp || '—') + ' <span class="badge bg-danger ms-1" style="font-size: 11px;">Offline</span>';
+            lastUpdateEl.style.color = '#e74c3c';
+        }
+    }
 
     // Gauges
-    updateGauge('gauge-freq', num(data[P + '_Output_frequency']), 100);
-    updateGauge('gauge-current', num(data[P + '_Motor_current']), 100);
-    updateGauge('gauge-torque', num(data[P + '_Motor_torque']), 100);
-    updateGauge('gauge-voltage', num(data[P + '_Motor_voltage']), 500);
-    updateGauge('gauge-power', num(data[P + '_Motor_power']), 100);
-    updateGauge('gauge-temp', num(data[P + '_Drive_temp']), 100);
+    updateGauge('gauge-freq', isOnline ? num(data[P + '_Output_frequency']) : 0, 100);
+    updateGauge('gauge-current', isOnline ? num(data[P + '_Motor_current']) : 0, 100);
+    updateGauge('gauge-torque', isOnline ? num(data[P + '_Motor_torque']) : 0, 100);
+    updateGauge('gauge-voltage', isOnline ? num(data[P + '_Motor_voltage']) : 0, 500);
+    updateGauge('gauge-power', isOnline ? num(data[P + '_Motor_power']) : 0, 100);
+    updateGauge('gauge-temp', isOnline ? num(data[P + '_Drive_temp']) : 0, 100);
 
     // Stat cards
-    document.getElementById('stat-mains-v').textContent = num(data[P + '_Mains_voltage']).toFixed(1);
+    document.getElementById('stat-mains-v').textContent = isOnline ? num(data[P + '_Mains_voltage']).toFixed(1) : '0';
     document.getElementById('stat-runtime').textContent = num(data[P + '_Motion_run_time']).toFixed(0);
     document.getElementById('stat-energy').textContent = num(data[P + '_di']).toFixed(1);
-    document.getElementById('stat-encoder').textContent = data[P + '_Encoder'] || '—';
-    document.getElementById('stat-load').textContent = data[P + '_Load_data'] || '—';
+    document.getElementById('stat-encoder').textContent = isOnline ? (data[P + '_Encoder'] || '—') : '—';
+    document.getElementById('stat-load').textContent = isOnline ? (data[P + '_Load_data'] || '—') : '—';
 
     // Fault code
-    const faultCode = num(data[P + '_Altivar_fault_code']);
+    const faultCode = isOnline ? num(data[P + '_Altivar_fault_code']) : 0;
     const faultEl = document.getElementById('stat-fault');
     if (faultCode > 0) {
         const faultStr = FAULT_MAP[faultCode] ? FAULT_MAP[faultCode] : 'Unknown (' + faultCode + ')';
@@ -422,9 +432,9 @@ function updateMotionDetail(data) {
 
     // Trend chart
     const now = new Date().toLocaleTimeString();
-    const freqVal = num(data[P + '_Output_frequency']);
-    const currVal = num(data[P + '_Motor_current']);
-    const powVal = num(data[P + '_Motor_power']);
+    const freqVal = isOnline ? num(data[P + '_Output_frequency']) : 0;
+    const currVal = isOnline ? num(data[P + '_Motor_current']) : 0;
+    const powVal = isOnline ? num(data[P + '_Motor_power']) : 0;
 
     trendChart.data.labels.push(now);
     trendChart.data.datasets[0].data.push(freqVal);
@@ -444,7 +454,7 @@ function updateMotionDetail(data) {
 function pollMotion() {
     fetch('api/get_latest.php?crane_id=' + CRANE_ID)
         .then(r => r.json())
-        .then(res => { if (res.success && res.data) updateMotionDetail(res.data); })
+        .then(res => { if (res.success && res.data) updateMotionDetail(res.data, res.age_seconds); })
         .catch(err => console.warn('Poll error:', err));
 }
 
