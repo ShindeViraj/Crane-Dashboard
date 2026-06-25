@@ -10,7 +10,7 @@ if (!canAccessCrane($craneId)) {
     exit;
 }
 
-$pageTitle = 'Motion Live Data';
+$pageTitle = 'Select Motion';
 $pdo = getDbConnection();
 $craneInfo = $pdo->prepare("SELECT crane_id, name, location, description FROM cranes WHERE crane_id = :cid");
 $craneInfo->execute([':cid' => $craneId]);
@@ -21,25 +21,138 @@ require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
 
 $drives = [
-    ['prefix' => 'MH', 'name' => 'Main Hoist', 'short' => 'MH', 'color' => '#E67E22', 'class' => 'drive-mh'],
-    ['prefix' => 'CT', 'name' => 'Cross Travel', 'short' => 'CT', 'color' => '#3498DB', 'class' => 'drive-ct'],
-    ['prefix' => 'LT', 'name' => 'Long Travel', 'short' => 'LT', 'color' => '#95A5A6', 'class' => 'drive-lt'],
-    ['prefix' => 'AH', 'name' => 'Aux Hoist', 'short' => 'AH', 'color' => '#F1C40F', 'class' => 'drive-ah'],
+    ['prefix' => 'MH', 'name' => 'Main Hoist',  'mech' => 'Hoist Mechanism',     'icon' => 'bi-arrow-up-circle',    'color' => '#E67E22'],
+    ['prefix' => 'CT', 'name' => 'Cross Travel', 'mech' => 'Trolley Mechanism',   'icon' => 'bi-arrow-left-right',   'color' => '#3498DB'],
+    ['prefix' => 'LT', 'name' => 'Long Travel',  'mech' => 'Gantry Mechanism',    'icon' => 'bi-arrows-move',        'color' => '#95A5A6'],
+    ['prefix' => 'AH', 'name' => 'Aux Hoist',    'mech' => 'Secondary Hoist',     'icon' => 'bi-arrow-up-square',    'color' => '#F1C40F'],
 ];
 ?>
 
 <style>
-.param-bar {
+.motion-select-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e9ecef;
+    border-left: 5px solid var(--accent);
+    padding: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+.motion-select-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+    color: inherit;
+    text-decoration: none;
+}
+.motion-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 12px;
+}
+.motion-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #fff;
+}
+.motion-card-info {
+    flex: 1;
+    margin-left: 14px;
+}
+.motion-card-mech {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #8c8c8c;
+}
+.motion-card-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #002147;
+    margin: 0;
+    line-height: 1.2;
+}
+.motion-card-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.motion-card-body {
+    padding: 8px 24px 20px;
+}
+.motion-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+.motion-stat {
+    text-align: center;
+    padding: 10px 4px;
+    background: #f8f9fb;
+    border-radius: 10px;
+}
+.motion-stat-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #002147;
+    line-height: 1;
+}
+.motion-stat-value small {
+    font-size: 11px;
+    font-weight: 500;
+    color: #8c8c8c;
+}
+.motion-stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8c8c8c;
+    margin-top: 4px;
+}
+.motion-stat-bar {
     height: 4px;
     background: #e9ecef;
     border-radius: 2px;
-    margin-top: 4px;
+    margin-top: 6px;
     overflow: hidden;
 }
-.param-bar-fill {
+.motion-stat-bar-fill {
     height: 100%;
     border-radius: 2px;
-    transition: width 0.5s ease;
+    transition: width 0.6s ease;
+}
+.motion-card-footer {
+    background: #f8f9fb;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #eee;
+}
+.motion-card-footer span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+}
+.motion-card-footer i {
+    font-size: 16px;
+    color: var(--accent);
+    transition: transform 0.3s ease;
+}
+.motion-select-card:hover .motion-card-footer i {
+    transform: translateX(4px);
 }
 </style>
 
@@ -48,14 +161,14 @@ $drives = [
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="dashboard.php"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a></li>
         <li class="breadcrumb-item"><a href="crane_live.php?crane_id=<?php echo $craneId; ?>"><?php echo htmlspecialchars($craneName); ?></a></li>
-        <li class="breadcrumb-item active">Motion Live Data</li>
+        <li class="breadcrumb-item active">Select Motion</li>
     </ol>
 </nav>
 
 <!-- Page Header -->
 <div class="page-header">
     <div>
-        <h1 class="page-title"><?php echo htmlspecialchars($craneName); ?> — Motion Live Data</h1>
+        <h1 class="page-title"><?php echo htmlspecialchars($craneName); ?> — Motion Data</h1>
         <div class="last-update-inline">
             <span class="live-dot-sm"></span>
             <span>Last updated: <strong id="drives-last-update">Waiting for data...</strong></span>
@@ -66,80 +179,69 @@ $drives = [
     </a>
 </div>
 
-<!-- 4 Drive Cards (2x2 grid) -->
+<p style="color:#5f6368;font-size:14px;margin-bottom:20px;">
+    <i class="bi bi-info-circle"></i> Select a motion to view its detailed dashboard with live gauges, charts, and parameters.
+</p>
+
+<!-- 4 Motion Cards (2x2 grid) -->
 <div class="row g-4 mb-4">
     <?php foreach ($drives as $drive): ?>
-    <div class="col-xl-6 mb-4">
-        <div class="drive-card h-100" style="border-left-color: <?php echo $drive['color']; ?>;">
-            <div class="drive-card-header">
-                <div>
-                    <div class="drive-mech-label"><?php echo $drive['prefix'] === 'MH' ? 'Hoist Mechanism' : ($drive['prefix'] === 'CT' ? 'Trolley Mechanism' : ($drive['prefix'] === 'LT' ? 'Gantry Mechanism' : 'Secondary Hoist')); ?></div>
-                    <h3 class="drive-card-title"><?php echo $drive['name']; ?> (<?php echo $drive['prefix']; ?>)</h3>
+    <div class="col-xl-6 col-lg-6 mb-3">
+        <a href="motion_detail.php?crane_id=<?php echo $craneId; ?>&motion=<?php echo $drive['prefix']; ?>" 
+           class="motion-select-card" style="--accent: <?php echo $drive['color']; ?>;">
+            
+            <div class="motion-card-header">
+                <div class="motion-card-icon" style="background: <?php echo $drive['color']; ?>;">
+                    <i class="bi <?php echo $drive['icon']; ?>"></i>
                 </div>
-                <div>
-                    <span class="status-chip status-idle-chip" id="<?php echo strtolower($drive['prefix']); ?>-drive-status-chip" style="font-size: 10px; font-weight: bold; text-transform: uppercase;">
-                        <span id="<?php echo strtolower($drive['prefix']); ?>-drive-status-text">Idle (0)</span>
-                    </span>
+                <div class="motion-card-info">
+                    <div class="motion-card-mech"><?php echo $drive['mech']; ?></div>
+                    <h3 class="motion-card-name"><?php echo $drive['name']; ?> (<?php echo $drive['prefix']; ?>)</h3>
+                </div>
+                <span class="motion-card-status status-chip status-idle-chip" 
+                      id="<?php echo strtolower($drive['prefix']); ?>-drive-status-chip">
+                    <span id="<?php echo strtolower($drive['prefix']); ?>-drive-status-text">Idle (0)</span>
+                </span>
+            </div>
+            
+            <div class="motion-card-body">
+                <div class="motion-stat-grid">
+                    <div class="motion-stat">
+                        <div class="motion-stat-value" id="<?php echo strtolower($drive['prefix']); ?>-output-freq">— <small>Hz</small></div>
+                        <div class="motion-stat-label">Frequency</div>
+                        <div class="motion-stat-bar"><div class="motion-stat-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-freq" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
+                    </div>
+                    <div class="motion-stat">
+                        <div class="motion-stat-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-current">— <small>A</small></div>
+                        <div class="motion-stat-label">Current</div>
+                        <div class="motion-stat-bar"><div class="motion-stat-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-current" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
+                    </div>
+                    <div class="motion-stat">
+                        <div class="motion-stat-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-power">— <small>%</small></div>
+                        <div class="motion-stat-label">Power</div>
+                        <div class="motion-stat-bar"><div class="motion-stat-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-power" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
+                    </div>
+                    <div class="motion-stat">
+                        <div class="motion-stat-value" id="<?php echo strtolower($drive['prefix']); ?>-drive-temp">— <small>°C</small></div>
+                        <div class="motion-stat-label">Temperature</div>
+                        <div class="motion-stat-bar"><div class="motion-stat-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-temp" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
+                    </div>
+                    <div class="motion-stat">
+                        <div class="motion-stat-value" id="<?php echo strtolower($drive['prefix']); ?>-run-time">— <small>hrs</small></div>
+                        <div class="motion-stat-label">Run Time</div>
+                    </div>
+                    <div class="motion-stat">
+                        <div class="motion-stat-value" id="<?php echo strtolower($drive['prefix']); ?>-di">— <small>kWh</small></div>
+                        <div class="motion-stat-label">Energy</div>
+                    </div>
                 </div>
             </div>
-            <div class="param-grid">
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-activity"></i> Output Frequency</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-output-freq">— <small>Hz</small></span>
-                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-freq" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-lightning"></i> Motor Current</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-current">— <small>A</small></span>
-                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-current" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-arrow-repeat"></i> Motor Torque</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-torque">— <small>%</small></span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-plug"></i> Mains Voltage</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-mains-voltage">— <small>V</small></span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-cpu"></i> Motor Voltage</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-motor-voltage">— <small>V</small></span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-lightning-charge"></i> Motor Load / Power</span>
-                    <span class="param-value param-highlight" id="<?php echo strtolower($drive['prefix']); ?>-motor-power">— <small>%</small></span>
-                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-power" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-thermometer-half"></i> Motion Temp</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-drive-temp">— <small>°C</small></span>
-                    <div class="param-bar"><div class="param-bar-fill" id="<?php echo strtolower($drive['prefix']); ?>-bar-temp" style="width:0%;background:<?php echo $drive['color']; ?>;"></div></div>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-clock-history"></i> Run Time</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-run-time">— <small>hrs</small></span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-exclamation-triangle"></i> Fault Code</span>
-                    <span class="param-value param-fault" id="<?php echo strtolower($drive['prefix']); ?>-fault-code">—</span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-speedometer"></i> Encoder</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-encoder">—</span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-database"></i> Load Data</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-load-data">—</span>
-                </div>
-                <div class="param-row">
-                    <span class="param-label"><i class="bi bi-battery-charging"></i> Energy Consumed</span>
-                    <span class="param-value" id="<?php echo strtolower($drive['prefix']); ?>-di">— <small>kWh</small></span>
-                </div>
+            
+            <div class="motion-card-footer">
+                <span>View Detailed Dashboard</span>
+                <i class="bi bi-arrow-right"></i>
             </div>
-            <a href="motion_detail.php?crane_id=<?php echo $craneId; ?>&motion=<?php echo $drive['prefix']; ?>" class="btn btn-sm btn-outline-primary w-100 mt-2">
-                <i class="bi bi-graph-up"></i> View Detailed Dashboard
-            </a>
-        </div>
+        </a>
     </div>
     <?php endforeach; ?>
 </div>
@@ -149,13 +251,7 @@ const CRANE_ID = '<?php echo $craneId; ?>';
 const DRIVES = ['mh', 'ct', 'lt', 'ah'];
 const PREFIXES = ['MH', 'CT', 'LT', 'AH'];
 
-<?php 
-require_once 'includes/fault_codes.php';
-global $faultMap;
-?>
-const FAULT_MAP = <?php echo json_encode($faultMap); ?>;
-
-// Safe numeric parser — preserves negative values, only defaults to 0 for missing/NaN
+// Safe numeric parser
 const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 
 function updateDrivesLive(data) {
@@ -171,9 +267,9 @@ function updateDrivesLive(data) {
         const statusChip = document.getElementById(d + '-drive-status-chip');
         const statusText = document.getElementById(d + '-drive-status-text');
         statusText.textContent = status > 0 ? 'Running (' + status + ')' : 'Idle (0)';
-        statusChip.className = 'status-chip ' + (status > 0 ? 'status-online' : 'status-idle-chip');
+        statusChip.className = 'motion-card-status status-chip ' + (status > 0 ? 'status-online' : 'status-idle-chip');
         
-        // Parameters
+        // Value setter
         const setVal = (id, val, unit) => {
             const el = document.getElementById(id);
             if (el) {
@@ -184,29 +280,19 @@ function updateDrivesLive(data) {
         
         setVal(d + '-output-freq', data[p + '_Output_frequency'], 'Hz');
         setVal(d + '-motor-current', data[p + '_Motor_current'], 'A');
-        setVal(d + '-motor-torque', data[p + '_Motor_torque'], '%');
-        setVal(d + '-mains-voltage', data[p + '_Mains_voltage'], 'V');
-        setVal(d + '-motor-voltage', data[p + '_Motor_voltage'], 'V');
-        
-        // Motor Power — display raw % value from VFD (no calculation)
         setVal(d + '-motor-power', data[p + '_Motor_power'], '%');
-        
         setVal(d + '-run-time', data[p + '_Motion_run_time'], 'hrs');
-        setVal(d + '-encoder', data[p + '_Encoder'], '');
-        setVal(d + '-load-data', data[p + '_Load_data'], '');
         setVal(d + '-di', data[p + '_di'], 'kWh');
         
-        // Drive temp with color coding
+        // Temp with color coding
         const temp = num(data[p + '_Drive_temp']);
         const tempEl = document.getElementById(d + '-drive-temp');
         if (tempEl) {
             tempEl.innerHTML = temp + ' <small>°C</small>';
-            tempEl.classList.remove('temp-warning', 'temp-danger');
-            if (temp > 70) tempEl.classList.add('temp-danger');
-            else if (temp > 50) tempEl.classList.add('temp-warning');
+            tempEl.style.color = temp > 70 ? '#e74c3c' : (temp > 50 ? '#f39c12' : '#002147');
         }
         
-        // Update mini progress bars
+        // Progress bars
         const setBar = (id, value, max) => {
             const bar = document.getElementById(id);
             if (bar) bar.style.width = Math.min(Math.max(num(value) / max * 100, 0), 100) + '%';
@@ -215,20 +301,6 @@ function updateDrivesLive(data) {
         setBar(d + '-bar-current', data[p + '_Motor_current'], 100);
         setBar(d + '-bar-power', data[p + '_Motor_power'], 100);
         setBar(d + '-bar-temp', data[p + '_Drive_temp'], 100);
-        
-        // Fault code with red highlight
-        const faultCode = num(data[p + '_Altivar_fault_code']);
-        const faultEl = document.getElementById(d + '-fault-code');
-        if (faultEl) {
-            if (faultCode > 0) {
-                const faultStr = FAULT_MAP[faultCode] ? FAULT_MAP[faultCode] : 'Unknown (' + faultCode + ')';
-                faultEl.innerHTML = '<span class="badge bg-danger text-wrap" style="font-size:11px;">' + faultStr + '</span>';
-                faultEl.classList.add('fault-active');
-            } else {
-                faultEl.innerHTML = '—';
-                faultEl.classList.remove('fault-active');
-            }
-        }
     });
 }
 
