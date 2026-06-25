@@ -28,95 +28,57 @@ require_once 'includes/sidebar.php';
 ?>
 
 <style>
-/* ===== Semi-Circular Gauge ===== */
-.gauge-container {
+/* ===== Premium Gauge Design ===== */
+.gauge-card {
+    text-align: center;
+    padding: 24px 16px 20px;
+}
+.gauge-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #002147;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+}
+.gauge-svg-wrapper {
     position: relative;
-    width: 180px;
-    height: 100px;
-    margin: 0 auto 10px;
-    overflow: hidden;
+    width: 200px;
+    height: 120px;
+    margin: 0 auto;
 }
-.gauge-bg {
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: conic-gradient(
-        #2ecc71 0deg 108deg,
-        #f39c12 108deg 144deg,
-        #e74c3c 144deg 180deg,
-        #e9ecef 180deg 360deg
-    );
-    position: relative;
+.gauge-svg-wrapper svg {
+    width: 200px;
+    height: 120px;
 }
-.gauge-fill {
+.gauge-center-value {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 140px;
-    height: 140px;
-    background: white;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-}
-.gauge-needle {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 3px;
-    height: 70px;
-    background: #2c3e50;
-    transform-origin: bottom center;
-    transform: translateX(-50%) rotate(-90deg);
-    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 3px;
-}
-.gauge-center-dot {
-    position: absolute;
-    bottom: -5px;
-    left: 50%;
-    width: 12px;
-    height: 12px;
-    background: #2c3e50;
-    border-radius: 50%;
-    transform: translateX(-50%);
-    z-index: 2;
-}
-.gauge-value {
-    position: absolute;
-    bottom: 5px;
+    bottom: 8px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 24px;
+    text-align: center;
+}
+.gauge-center-value .value {
+    font-size: 32px;
     font-weight: 800;
     font-family: 'Inter', sans-serif;
     color: #002147;
+    line-height: 1;
 }
-.gauge-label {
-    text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #5f6368;
-    letter-spacing: 0.5px;
-    margin-top: 5px;
+.gauge-center-value .unit {
+    font-size: 13px;
+    font-weight: 500;
+    color: #8c8c8c;
+    display: block;
+    margin-top: 2px;
 }
-.gauge-title {
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: #002147;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-.gauge-range {
+.gauge-range-labels {
     display: flex;
     justify-content: space-between;
-    font-size: 10px;
-    color: #999;
+    padding: 4px 20px 0;
+    font-size: 11px;
     font-weight: 600;
-    margin-top: 2px;
-    padding: 0 10px;
+    color: #aaa;
 }
 
 /* ===== Stat Cards ===== */
@@ -137,9 +99,7 @@ require_once 'includes/sidebar.php';
     color: white;
     flex-shrink: 0;
 }
-.stat-info {
-    flex: 1;
-}
+.stat-info { flex: 1; }
 .stat-label {
     font-size: 12px;
     font-weight: 600;
@@ -193,35 +153,54 @@ require_once 'includes/sidebar.php';
     </a>
 </div>
 
-<!-- Row 1: 6 CSS Semi-Circular Gauges -->
+<!-- Row 1: 6 SVG Gauges -->
 <div class="row g-4 mb-4">
     <?php
     $gauges = [
-        ['id' => 'gauge-freq', 'title' => 'Output Frequency', 'unit' => 'Hz', 'max' => 100, 'icon' => 'bi-activity'],
-        ['id' => 'gauge-current', 'title' => 'Motor Current', 'unit' => 'A', 'max' => 100, 'icon' => 'bi-lightning'],
-        ['id' => 'gauge-torque', 'title' => 'Motor Torque', 'unit' => '%', 'max' => 100, 'icon' => 'bi-arrow-repeat'],
-        ['id' => 'gauge-voltage', 'title' => 'Motor Voltage', 'unit' => 'V', 'max' => 500, 'icon' => 'bi-cpu'],
-        ['id' => 'gauge-power', 'title' => 'Motor Load / Power', 'unit' => '%', 'max' => 100, 'icon' => 'bi-lightning-charge'],
-        ['id' => 'gauge-temp', 'title' => 'Temperature', 'unit' => '°C', 'max' => 100, 'icon' => 'bi-thermometer-half'],
+        ['id' => 'gauge-freq',    'title' => 'Output Frequency',    'unit' => 'Hz',  'max' => 100, 'icon' => 'bi-activity',          'color' => '#E67E22'],
+        ['id' => 'gauge-current', 'title' => 'Motor Current',       'unit' => 'A',   'max' => 100, 'icon' => 'bi-lightning',          'color' => '#2ecc71'],
+        ['id' => 'gauge-torque',  'title' => 'Motor Torque',        'unit' => '%',   'max' => 100, 'icon' => 'bi-arrow-repeat',       'color' => '#3498DB'],
+        ['id' => 'gauge-voltage', 'title' => 'Motor Voltage',       'unit' => 'V',   'max' => 500, 'icon' => 'bi-cpu',                'color' => '#9b59b6'],
+        ['id' => 'gauge-power',   'title' => 'Motor Load / Power',  'unit' => '%',   'max' => 100, 'icon' => 'bi-lightning-charge',    'color' => '#F1C40F'],
+        ['id' => 'gauge-temp',    'title' => 'Temperature',         'unit' => '°C',  'max' => 100, 'icon' => 'bi-thermometer-half',    'color' => '#e74c3c'],
     ];
     foreach ($gauges as $g):
     ?>
     <div class="col-lg-4 col-md-6 mb-4">
-        <div class="data-card" id="<?php echo $g['id']; ?>">
+        <div class="data-card gauge-card" id="<?php echo $g['id']; ?>">
             <div class="gauge-title"><i class="bi <?php echo $g['icon']; ?>"></i> <?php echo $g['title']; ?></div>
-            <div class="gauge-container">
-                <div class="gauge-bg">
-                    <div class="gauge-fill"></div>
-                    <div class="gauge-needle"></div>
-                    <div class="gauge-center-dot"></div>
+            <div class="gauge-svg-wrapper">
+                <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background track (grey arc) -->
+                    <path d="M 20 100 A 80 80 0 0 1 180 100" 
+                          fill="none" stroke="#e9ecef" stroke-width="14" stroke-linecap="round"/>
+                    <!-- Value arc (colored) -->
+                    <path class="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" 
+                          fill="none" stroke="<?php echo $g['color']; ?>" stroke-width="14" stroke-linecap="round"
+                          stroke-dasharray="0 251.33"
+                          style="transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);"/>
+                    <!-- Tick marks -->
+                    <line x1="20" y1="100" x2="28" y2="100" stroke="#ccc" stroke-width="1.5"/>
+                    <line x1="55" y1="32" x2="60" y2="38" stroke="#ccc" stroke-width="1.5"/>
+                    <line x1="100" y1="20" x2="100" y2="28" stroke="#ccc" stroke-width="1.5"/>
+                    <line x1="145" y1="32" x2="140" y2="38" stroke="#ccc" stroke-width="1.5"/>
+                    <line x1="180" y1="100" x2="172" y2="100" stroke="#ccc" stroke-width="1.5"/>
+                    <!-- Center dot -->
+                    <circle cx="100" cy="100" r="6" fill="#002147"/>
+                    <!-- Needle -->
+                    <line class="gauge-needle" x1="100" y1="100" x2="30" y2="100" 
+                          stroke="#002147" stroke-width="3" stroke-linecap="round"
+                          style="transform-origin: 100px 100px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);"/>
+                </svg>
+                <div class="gauge-center-value">
+                    <span class="value">0</span>
+                    <span class="unit"><?php echo $g['unit']; ?></span>
                 </div>
-                <div class="gauge-value">0</div>
             </div>
-            <div class="gauge-range">
+            <div class="gauge-range-labels">
                 <span>0</span>
                 <span><?php echo $g['max']; ?></span>
             </div>
-            <div class="gauge-label"><?php echo $g['unit']; ?> (max <?php echo $g['max']; ?>)</div>
         </div>
     </div>
     <?php endforeach; ?>
@@ -322,15 +301,25 @@ const FAULT_MAP = <?php echo json_encode($faultMap); ?>;
 
 const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 
-// ===== Gauge Update =====
+// ===== SVG Gauge Update =====
 function updateGauge(id, value, max) {
     const pct = Math.min(Math.max(value / max, 0), 1);
-    const degrees = -90 + (pct * 180);
     const el = document.getElementById(id);
     if (!el) return;
+
+    // Update arc — total arc length is ~251.33 (π * 80)
+    const arcLen = 251.33;
+    const filledLen = pct * arcLen;
+    const arc = el.querySelector('.gauge-arc');
+    if (arc) arc.setAttribute('stroke-dasharray', filledLen + ' ' + arcLen);
+
+    // Update needle — rotate from -90deg (0%) to +90deg (100%)
+    const degrees = -90 + (pct * 180);
     const needle = el.querySelector('.gauge-needle');
-    const valEl = el.querySelector('.gauge-value');
-    if (needle) needle.style.transform = 'translateX(-50%) rotate(' + degrees + 'deg)';
+    if (needle) needle.style.transform = 'rotate(' + degrees + 'deg)';
+
+    // Update value text
+    const valEl = el.querySelector('.gauge-center-value .value');
     if (valEl) valEl.textContent = value % 1 === 0 ? value : value.toFixed(1);
 }
 
@@ -345,31 +334,33 @@ const trendChart = new Chart(trendCtx, {
             {
                 label: 'Frequency (Hz)',
                 data: [],
-                borderColor: MOTION_COLOR,
-                backgroundColor: MOTION_COLOR + '22',
+                borderColor: '#E67E22',
+                backgroundColor: '#E67E2222',
                 fill: true,
                 tension: 0.4,
-                borderWidth: 2,
+                borderWidth: 2.5,
                 pointRadius: 2,
-                pointBackgroundColor: MOTION_COLOR
+                pointBackgroundColor: '#E67E22'
             },
             {
                 label: 'Current (A)',
                 data: [],
-                borderColor: MOTION_COLOR + 'AA',
-                borderWidth: 1.5,
+                borderColor: '#2ecc71',
+                backgroundColor: '#2ecc7122',
+                fill: false,
                 tension: 0.4,
-                pointRadius: 0,
-                borderDash: [5, 5]
+                borderWidth: 2,
+                pointRadius: 0
             },
             {
                 label: 'Power (%)',
                 data: [],
-                borderColor: MOTION_COLOR + '66',
-                borderWidth: 1.5,
+                borderColor: '#F1C40F',
+                backgroundColor: '#F1C40F22',
+                fill: false,
                 tension: 0.4,
-                pointRadius: 0,
-                borderDash: [3, 3]
+                borderWidth: 2,
+                pointRadius: 0
             }
         ]
     },
