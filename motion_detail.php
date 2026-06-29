@@ -27,58 +27,57 @@ require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
 ?>
 
+<!-- ApexCharts CDN -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
 <style>
-/* ===== Premium Gauge Design ===== */
+/* ===== Premium ApexCharts Gauge Design ===== */
 .gauge-card {
     text-align: center;
-    padding: 24px 16px 20px;
+    padding: 18px 14px 14px;
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid transparent;
+    box-shadow: 0 2px 12px rgba(0,33,71,0.06);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
+.gauge-card:hover {
+    box-shadow: 0 6px 24px rgba(0,33,71,0.12);
+    transform: translateY(-2px);
+}
+.gauge-card.gc-freq { border-left-color: #E67E22; background: linear-gradient(135deg, #fffaf5 0%, #fff 60%); }
+.gauge-card.gc-curr { border-left-color: #27ae60; background: linear-gradient(135deg, #f3fdf6 0%, #fff 60%); }
+.gauge-card.gc-torq { border-left-color: #3498DB; background: linear-gradient(135deg, #f0f7ff 0%, #fff 60%); }
+.gauge-card.gc-volt { border-left-color: #9b59b6; background: linear-gradient(135deg, #f8f3ff 0%, #fff 60%); }
+.gauge-card.gc-pow  { border-left-color: #F1C40F; background: linear-gradient(135deg, #fffef3 0%, #fff 60%); }
+.gauge-card.gc-temp { border-left-color: #e74c3c; background: linear-gradient(135deg, #fff5f5 0%, #fff 60%); }
 .gauge-title {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     color: #002147;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 16px;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
-.gauge-svg-wrapper {
+.gauge-title i { font-size: 13px; opacity: 0.7; }
+.gauge-apex-wrap {
     position: relative;
-    width: 200px;
-    height: 120px;
     margin: 0 auto;
+    min-height: 180px;
 }
-.gauge-svg-wrapper svg {
-    width: 200px;
-    height: 120px;
-}
-.gauge-center-value {
-    position: absolute;
-    bottom: 25px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    pointer-events: none;
-}
-.gauge-center-value .value {
-    font-size: 32px;
-    font-weight: 800;
-    font-family: 'Inter', sans-serif;
-    color: #002147;
-    line-height: 1;
-}
-.gauge-center-value .unit {
-    font-size: 13px;
-    font-weight: 500;
-    color: #8c8c8c;
-    margin-left: 2px;
-}
-.gauge-range-labels {
+.gauge-footer {
     display: flex;
     justify-content: space-between;
-    padding: 4px 20px 0;
-    font-size: 11px;
+    padding: 0 18px;
+    font-size: 10px;
     font-weight: 600;
-    color: #aaa;
+    color: #b0b0b0;
+    margin-top: -6px;
+    letter-spacing: 0.3px;
 }
 
 /* ===== Stat Cards ===== */
@@ -153,57 +152,56 @@ require_once 'includes/sidebar.php';
     </a>
 </div>
 
-<!-- Row 1: 6 SVG Gauges -->
+<!-- Row 1: 6 ApexCharts Gauges -->
 <div class="row g-4 mb-4">
-    <?php
-    $gauges = [
-        ['id' => 'gauge-freq',    'title' => 'Output Frequency',    'unit' => 'Hz',  'max' => 100, 'icon' => 'bi-activity',          'color' => '#E67E22'],
-        ['id' => 'gauge-current', 'title' => 'Motor Current',       'unit' => 'A',   'max' => 100, 'icon' => 'bi-lightning',          'color' => '#2ecc71'],
-        ['id' => 'gauge-torque',  'title' => 'Motor Torque',        'unit' => '%',   'max' => 100, 'icon' => 'bi-arrow-repeat',       'color' => '#3498DB'],
-        ['id' => 'gauge-voltage', 'title' => 'Motor Voltage',       'unit' => 'V',   'max' => 500, 'icon' => 'bi-cpu',                'color' => '#9b59b6'],
-        ['id' => 'gauge-power',   'title' => 'Motor Load / Power',  'unit' => '%',   'max' => 100, 'icon' => 'bi-lightning-charge',    'color' => '#F1C40F'],
-        ['id' => 'gauge-temp',    'title' => 'Temperature',         'unit' => '°C',  'max' => 100, 'icon' => 'bi-thermometer-half',    'color' => '#e74c3c'],
-    ];
-    foreach ($gauges as $g):
-    ?>
-    <div class="col-lg-4 col-md-6 mb-4">
-        <div class="data-card gauge-card" id="<?php echo $g['id']; ?>">
-            <div class="gauge-title"><i class="bi <?php echo $g['icon']; ?>"></i> <?php echo $g['title']; ?></div>
-            <div class="gauge-svg-wrapper">
-                <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Background track (grey arc) -->
-                    <path d="M 20 100 A 80 80 0 0 1 180 100" 
-                          fill="none" stroke="#e9ecef" stroke-width="14" stroke-linecap="round"/>
-                    <!-- Value arc (colored) -->
-                    <path class="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" 
-                          fill="none" stroke="<?php echo $g['color']; ?>" stroke-width="14" stroke-linecap="round"
-                          stroke-dasharray="0 251.33"
-                          style="transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);"/>
-                    <!-- Tick marks -->
-                    <line x1="20" y1="100" x2="28" y2="100" stroke="#ccc" stroke-width="1.5"/>
-                    <line x1="55" y1="32" x2="60" y2="38" stroke="#ccc" stroke-width="1.5"/>
-                    <line x1="100" y1="20" x2="100" y2="28" stroke="#ccc" stroke-width="1.5"/>
-                    <line x1="145" y1="32" x2="140" y2="38" stroke="#ccc" stroke-width="1.5"/>
-                    <line x1="180" y1="100" x2="172" y2="100" stroke="#ccc" stroke-width="1.5"/>
-                    <!-- Center dot -->
-                    <circle cx="100" cy="100" r="6" fill="#002147"/>
-                    <!-- Needle -->
-                    <line class="gauge-needle" x1="100" y1="100" x2="30" y2="100" 
-                          stroke="#002147" stroke-width="3" stroke-linecap="round"
-                          style="transform-origin: 100px 100px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);"/>
-                </svg>
-                <div class="gauge-center-value">
-                    <span class="value">0</span>
-                    <span class="unit"><?php echo $g['unit']; ?></span>
-                </div>
-            </div>
-            <div class="gauge-range-labels">
-                <span>0</span>
-                <span><?php echo $g['max']; ?></span>
-            </div>
+    <!-- 1. Output Frequency — Gradient Radial -->
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="data-card gauge-card gc-freq" id="gauge-freq">
+            <div class="gauge-title"><i class="bi bi-activity"></i> Output Frequency</div>
+            <div class="gauge-apex-wrap" id="chart-freq"></div>
+            <div class="gauge-footer"><span>0</span><span>100 Hz</span></div>
         </div>
     </div>
-    <?php endforeach; ?>
+    <!-- 2. Motor Current — Segmented Stroked -->
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="data-card gauge-card gc-curr" id="gauge-current">
+            <div class="gauge-title"><i class="bi bi-lightning"></i> Motor Current</div>
+            <div class="gauge-apex-wrap" id="chart-current"></div>
+            <div class="gauge-footer"><span>0</span><span>100 A</span></div>
+        </div>
+    </div>
+    <!-- 3. Motor Torque — Classic Semi-Circle -->
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="data-card gauge-card gc-torq" id="gauge-torque">
+            <div class="gauge-title"><i class="bi bi-arrow-repeat"></i> Motor Torque</div>
+            <div class="gauge-apex-wrap" id="chart-torque"></div>
+            <div class="gauge-footer"><span>0</span><span>100 %</span></div>
+        </div>
+    </div>
+    <!-- 4. Motor Voltage — Dual-Tone Radial -->
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="data-card gauge-card gc-volt" id="gauge-voltage">
+            <div class="gauge-title"><i class="bi bi-cpu"></i> Motor Voltage</div>
+            <div class="gauge-apex-wrap" id="chart-voltage"></div>
+            <div class="gauge-footer"><span>0</span><span>500 V</span></div>
+        </div>
+    </div>
+    <!-- 5. Motor Load / Power — Thick Progress Ring -->
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="data-card gauge-card gc-pow" id="gauge-power">
+            <div class="gauge-title"><i class="bi bi-lightning-charge"></i> Motor Load / Power</div>
+            <div class="gauge-apex-wrap" id="chart-power"></div>
+            <div class="gauge-footer"><span>0</span><span>100 %</span></div>
+        </div>
+    </div>
+    <!-- 6. Temperature — Heat Zone Gauge -->
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="data-card gauge-card gc-temp" id="gauge-temp">
+            <div class="gauge-title"><i class="bi bi-thermometer-half"></i> Temperature</div>
+            <div class="gauge-apex-wrap" id="chart-temp"></div>
+            <div class="gauge-footer"><span>0</span><span>100 °C</span></div>
+        </div>
+    </div>
 </div>
 
 <!-- Row 2: Stat Cards -->
@@ -301,26 +299,131 @@ const FAULT_MAP = <?php echo json_encode($faultMap); ?>;
 
 const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 
-// ===== SVG Gauge Update =====
+// ===== ApexCharts Gauge Instances =====
+const gaugeCharts = {};
+const gaugeMaxes = { 'gauge-freq': 100, 'gauge-current': 100, 'gauge-torque': 100, 'gauge-voltage': 500, 'gauge-power': 100, 'gauge-temp': 100 };
+const gaugeUnits = { 'gauge-freq': 'Hz', 'gauge-current': 'A', 'gauge-torque': '%', 'gauge-voltage': 'V', 'gauge-power': '%', 'gauge-temp': '°C' };
+
+function makeBase(label, color, unit) {
+    return {
+        series: [0],
+        chart: { type: 'radialBar', height: 210, sparkline: { enabled: true }, animations: { enabled: true, easing: 'easeinout', speed: 700 },
+            dropShadow: { enabled: true, top: 2, left: 0, blur: 6, opacity: 0.08 } },
+        plotOptions: { radialBar: {
+            startAngle: -135, endAngle: 135,
+            hollow: { size: '60%', background: 'transparent' },
+            track: { background: '#eef0f4', strokeWidth: '97%', margin: 5,
+                dropShadow: { enabled: true, top: 1, left: 0, blur: 3, opacity: 0.06 } },
+            dataLabels: {
+                name:  { offsetY: -10, fontSize: '11px', fontFamily: 'Inter', fontWeight: 600, color: '#8c9bac' },
+                value: { offsetY: 4, fontSize: '26px', fontFamily: 'Inter', fontWeight: 800, color: '#002147',
+                    formatter: function() { return '0'; }
+                }
+            }
+        }},
+        fill: { type: 'solid', colors: [color] },
+        stroke: { lineCap: 'round' },
+        labels: [label]
+    };
+}
+
+// --- 1. Frequency: Orange-gold gradient arc ---
+(function() {
+    const o = makeBase('Frequency', '#E67E22', 'Hz');
+    o.fill = { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', shadeIntensity: 0.35, gradientToColors: ['#F39C12'], stops: [0, 100] } };
+    o.plotOptions.radialBar.track.background = '#fde8d0';
+    o.plotOptions.radialBar.hollow.size = '62%';
+    o.plotOptions.radialBar.dataLabels.value.formatter = function(v) { return (v / 100 * 100).toFixed(1) + ' Hz'; };
+    gaugeCharts['gauge-freq'] = new ApexCharts(document.querySelector('#chart-freq'), o);
+    gaugeCharts['gauge-freq'].render();
+})();
+
+// --- 2. Current: Dashed / segmented green ring ---
+(function() {
+    const o = makeBase('Current', '#27ae60', 'A');
+    o.plotOptions.radialBar.startAngle = -120;
+    o.plotOptions.radialBar.endAngle = 120;
+    o.plotOptions.radialBar.track.background = '#d5f5e3';
+    o.plotOptions.radialBar.hollow.size = '58%';
+    o.plotOptions.radialBar.track.strokeWidth = '90%';
+    o.stroke = { lineCap: 'butt', dashArray: 5 };
+    o.fill = { type: 'gradient', gradient: { shade: 'dark', type: 'vertical', shadeIntensity: 0.2, gradientToColors: ['#1e8449'], stops: [0, 100] } };
+    o.plotOptions.radialBar.dataLabels.value.formatter = function(v) { return (v / 100 * 100).toFixed(1) + ' A'; };
+    gaugeCharts['gauge-current'] = new ApexCharts(document.querySelector('#chart-current'), o);
+    gaugeCharts['gauge-current'].render();
+})();
+
+// --- 3. Torque: Blue gradient arc ---
+(function() {
+    const o = makeBase('Torque', '#3498DB', '%');
+    o.plotOptions.radialBar.startAngle = -135;
+    o.plotOptions.radialBar.endAngle = 135;
+    o.plotOptions.radialBar.hollow.size = '55%';
+    o.plotOptions.radialBar.track.background = '#d4e6f9';
+    o.plotOptions.radialBar.track.strokeWidth = '92%';
+    o.fill = { type: 'gradient', gradient: { shade: 'dark', type: 'vertical', shadeIntensity: 0.3, gradientToColors: ['#1a5276'], stops: [0, 100] } };
+    o.plotOptions.radialBar.dataLabels.value.formatter = function(v) { return (v / 100 * 100).toFixed(1) + ' %'; };
+    gaugeCharts['gauge-torque'] = new ApexCharts(document.querySelector('#chart-torque'), o);
+    gaugeCharts['gauge-torque'].render();
+})();
+
+// --- 4. Voltage: Purple diagonal gradient, wide arc ---
+(function() {
+    const o = makeBase('Voltage', '#9b59b6', 'V');
+    o.plotOptions.radialBar.hollow.size = '60%';
+    o.plotOptions.radialBar.track.background = '#e8daef';
+    o.plotOptions.radialBar.startAngle = -150;
+    o.plotOptions.radialBar.endAngle = 150;
+    o.fill = { type: 'gradient', gradient: { shade: 'dark', type: 'diagonal1', shadeIntensity: 0.4, gradientToColors: ['#6c3483'], stops: [0, 100] } };
+    o.plotOptions.radialBar.dataLabels.value.formatter = function(v) { return (v / 100 * 500).toFixed(0) + ' V'; };
+    gaugeCharts['gauge-voltage'] = new ApexCharts(document.querySelector('#chart-voltage'), o);
+    gaugeCharts['gauge-voltage'].render();
+})();
+
+// --- 5. Power: Thick bold ring, gold-to-orange ---
+(function() {
+    const o = makeBase('Load', '#F1C40F', '%');
+    o.plotOptions.radialBar.startAngle = -135;
+    o.plotOptions.radialBar.endAngle = 135;
+    o.plotOptions.radialBar.hollow.size = '50%';
+    o.plotOptions.radialBar.track.background = '#fef3cd';
+    o.plotOptions.radialBar.track.strokeWidth = '100%';
+    o.stroke = { lineCap: 'round' };
+    o.fill = { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', shadeIntensity: 0.2, gradientToColors: ['#e67e22'], stops: [0, 100] } };
+    o.plotOptions.radialBar.dataLabels.value.fontSize = '30px';
+    o.plotOptions.radialBar.dataLabels.value.formatter = function(v) { return (v / 100 * 100).toFixed(1) + ' %'; };
+    gaugeCharts['gauge-power'] = new ApexCharts(document.querySelector('#chart-power'), o);
+    gaugeCharts['gauge-power'].render();
+})();
+
+// --- 6. Temperature: Dynamic heat-zone colors ---
+(function() {
+    const o = makeBase('Temp', '#27ae60', '°C');
+    o.plotOptions.radialBar.startAngle = -135;
+    o.plotOptions.radialBar.endAngle = 135;
+    o.plotOptions.radialBar.hollow.size = '58%';
+    o.plotOptions.radialBar.track.background = '#fce4e4';
+    o.colors = ['#27ae60'];
+    o.fill = { type: 'solid', colors: ['#27ae60'] };
+    o.plotOptions.radialBar.dataLabels.value.formatter = function(v) { return (v / 100 * 100).toFixed(1) + ' °C'; };
+    gaugeCharts['gauge-temp'] = new ApexCharts(document.querySelector('#chart-temp'), o);
+    gaugeCharts['gauge-temp'].render();
+})();
+
+// ===== Gauge Update Helper =====
 function updateGauge(id, value, max) {
-    const pct = Math.min(Math.max(value / max, 0), 1);
-    const el = document.getElementById(id);
-    if (!el) return;
+    const chart = gaugeCharts[id];
+    if (!chart) return;
+    const pct = Math.min(Math.max(value / max * 100, 0), 100);
+    chart.updateSeries([Math.round(pct * 10) / 10], true);
 
-    // Update arc — total arc length is ~251.33 (π * 80)
-    const arcLen = 251.33;
-    const filledLen = pct * arcLen;
-    const arc = el.querySelector('.gauge-arc');
-    if (arc) arc.setAttribute('stroke-dasharray', filledLen + ' ' + arcLen);
-
-    // Update needle — rotate from 0deg (0%) to 180deg (100%)
-    const degrees = pct * 180;
-    const needle = el.querySelector('.gauge-needle');
-    if (needle) needle.style.transform = 'rotate(' + degrees + 'deg)';
-
-    // Update value text
-    const valEl = el.querySelector('.gauge-center-value .value');
-    if (valEl) valEl.textContent = value % 1 === 0 ? value : value.toFixed(1);
+    // Dynamic color for temperature gauge
+    if (id === 'gauge-temp') {
+        let col = '#27ae60';
+        if (pct > 70) col = '#e74c3c';
+        else if (pct > 40) col = '#f39c12';
+        chart.updateOptions({ fill: { colors: [col] }, colors: [col] }, false, false);
+    }
 }
 
 // ===== Trend Chart =====

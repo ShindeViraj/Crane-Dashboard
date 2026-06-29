@@ -185,9 +185,31 @@ if (!empty($craneDividers)) {
     applyDividers($data, $craneDividers);
 }
 
+// ── Preserve last known non-zero values for accumulative parameters ─
+// If incoming run time or di (energy) is 0 or null, we check the previous cached
+// live state and keep the last known non-zero value.
+$prevData = null;
+$liveStateFile = CACHE_DIR . '/live_state_' . $craneIdVal . '.json';
+if (file_exists($liveStateFile)) {
+    $prevPayload = json_decode(file_get_contents($liveStateFile), true);
+    if ($prevPayload && isset($prevPayload['data'])) {
+        $prevData = $prevPayload['data'];
+    }
+}
+foreach (['MH', 'CT', 'LT', 'AH'] as $prefix) {
+    foreach (['_Motion_run_time', '_di'] as $suffix) {
+        $key = $prefix . $suffix;
+        $incomingVal = isset($data[$key]) ? floatval($data[$key]) : 0;
+        if ($incomingVal == 0) {
+            if ($prevData && isset($prevData[$key]) && floatval($prevData[$key]) > 0) {
+                $data[$key] = $prevData[$key];
+            }
+        }
+    }
+}
+
 // ── Step 1: Write Live State (every request, no DB) ──────────────
 // This file is read by get_latest.php for real-time dashboard display.
-$liveStateFile = CACHE_DIR . '/live_state_' . $craneIdVal . '.json';
 $livePayload = [
     '_cached_at' => time(),
     '_timestamp_ist' => $tsVal,
