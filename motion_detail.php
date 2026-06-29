@@ -40,6 +40,10 @@ require_once 'includes/sidebar.php';
     border-left: 4px solid transparent;
     box-shadow: 0 2px 12px rgba(0,33,71,0.06);
     transition: box-shadow 0.3s ease, transform 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 .gauge-card:hover {
     box-shadow: 0 6px 24px rgba(0,33,71,0.12);
@@ -68,6 +72,10 @@ require_once 'includes/sidebar.php';
     position: relative;
     margin: 0 auto;
     min-height: 180px;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .gauge-footer {
     display: flex;
