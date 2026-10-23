@@ -48,13 +48,16 @@ if (strlen($rawInput) > 32768) {
     exit;
 }
 
-// ── Phase 5: Per-IP Rate Limiting (60 req/min) ───────────────────
+// ── Phase 5: Per-IP Rate Limiting (120 req/min) ──────────────────
+// 120 req/min = 2 req/sec headroom per gateway IP.
+// Each crane uses its own dedicated gateway, so this limit applies
+// independently per crane. Scales cleanly to 200+ cranes with no changes.
 $rateLimitDir = sys_get_temp_dir() . '/bml_ratelimit';
 if (!is_dir($rateLimitDir)) { @mkdir($rateLimitDir, 0755, true); }
 $clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $rateFile = $rateLimitDir . '/' . md5($clientIp . '_receive') . '.json';
 $rateWindow = 60; // seconds
-$rateMax = 60;     // max requests per window
+$rateMax = 120;    // max requests per window (1 req/sec device + 2x burst headroom)
 
 $rateData = file_exists($rateFile) ? json_decode(file_get_contents($rateFile), true) : null;
 if (!$rateData || (time() - ($rateData['window_start'] ?? 0)) > $rateWindow) {
