@@ -31,7 +31,7 @@ define('DIVISIBLE_PARAMS', [
     'di'
 ]);
 
-define('MOTION_PREFIXES', ['MH', 'CT', 'LT', 'AH']);
+define('MOTION_PREFIXES', ['MH', 'CT', 'LT', 'AH', 'AhCt', 'Lt2']);
 
 /**
  * Get the cache file path for a crane's dividers.

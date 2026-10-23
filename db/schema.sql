@@ -166,3 +166,41 @@ CREATE TABLE IF NOT EXISTS crane_data (
 -- MIGRATION: Add total_life_hours column (run on existing databases)
 -- ============================================
 -- ALTER TABLE cranes ADD COLUMN total_life_hours FLOAT DEFAULT NULL AFTER capacity;
+
+-- ============================================
+-- MIGRATION: Add AhCt and Lt2 motion columns
+-- Deployed: 2026-10-23
+-- Run on existing databases that were created before this date.
+-- The server-side database was updated manually before this migration comment was added.
+-- ============================================
+-- ALTER TABLE crane_data
+--   ADD COLUMN AhCt_Drive_status SMALLINT DEFAULT NULL,
+--   ADD COLUMN AhCt_Output_frequency INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Motor_current INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Motor_torque INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Mains_voltage INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Motor_voltage INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Motor_power INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Drive_temp INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Motion_run_time FLOAT DEFAULT NULL,
+--   ADD COLUMN AhCt_Logic_input INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Logic_output INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Altivar_fault_code INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Encoder INT DEFAULT NULL,
+--   ADD COLUMN AhCt_Load_data INT DEFAULT NULL,
+--   ADD COLUMN AhCt_di FLOAT DEFAULT NULL,
+--   ADD COLUMN Lt2_Drive_status SMALLINT DEFAULT NULL,
+--   ADD COLUMN Lt2_Output_frequency INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Motor_current INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Motor_torque INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Mains_voltage INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Motor_voltage INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Motor_power INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Drive_temp INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Motion_run_time FLOAT DEFAULT NULL,
+--   ADD COLUMN Lt2_Logic_input INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Logic_output INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Altivar_fault_code INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Encoder INT DEFAULT NULL,
+--   ADD COLUMN Lt2_Load_data INT DEFAULT NULL,
+--   ADD COLUMN Lt2_di FLOAT DEFAULT NULL;

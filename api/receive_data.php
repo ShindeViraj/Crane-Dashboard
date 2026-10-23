@@ -100,7 +100,17 @@ $columns = [
     'AH_Drive_status', 'AH_Output_frequency', 'AH_Motor_current', 'AH_Motor_torque',
     'AH_Mains_voltage', 'AH_Motor_voltage', 'AH_Motor_power', 'AH_Drive_temp',
     'AH_Motion_run_time', 'AH_Logic_input', 'AH_Logic_output', 'AH_Altivar_fault_code',
-    'AH_Encoder', 'AH_Load_data', 'AH_di'
+    'AH_Encoder', 'AH_Load_data', 'AH_di',
+    // AhCt: Aux Hoist Cross Travel (combined drive)
+    'AhCt_Drive_status', 'AhCt_Output_frequency', 'AhCt_Motor_current', 'AhCt_Motor_torque',
+    'AhCt_Mains_voltage', 'AhCt_Motor_voltage', 'AhCt_Motor_power', 'AhCt_Drive_temp',
+    'AhCt_Motion_run_time', 'AhCt_Logic_input', 'AhCt_Logic_output', 'AhCt_Altivar_fault_code',
+    'AhCt_Encoder', 'AhCt_Load_data', 'AhCt_di',
+    // Lt2: Long Travel 2 (second LT drive)
+    'Lt2_Drive_status', 'Lt2_Output_frequency', 'Lt2_Motor_current', 'Lt2_Motor_torque',
+    'Lt2_Mains_voltage', 'Lt2_Motor_voltage', 'Lt2_Motor_power', 'Lt2_Drive_temp',
+    'Lt2_Motion_run_time', 'Lt2_Logic_input', 'Lt2_Logic_output', 'Lt2_Altivar_fault_code',
+    'Lt2_Encoder', 'Lt2_Load_data', 'Lt2_di',
 ];
 
 // Reject unknown keys
@@ -196,7 +206,7 @@ if (file_exists($liveStateFile)) {
         $prevData = $prevPayload['data'];
     }
 }
-foreach (['MH', 'CT', 'LT', 'AH'] as $prefix) {
+foreach (['MH', 'CT', 'LT', 'AH', 'AhCt', 'Lt2'] as $prefix) {
     foreach (['_Motion_run_time', '_di'] as $suffix) {
         $key = $prefix . $suffix;
         $incomingVal = isset($data[$key]) ? floatval($data[$key]) : 0;
